@@ -1,0 +1,14 @@
+{
+  "DFFlagTextureQualityOverrideEnabled": true,
+  "DFIntTextureQualityOverride": 0,
+  "FFlagDisablePostFx": true,
+  "FFlagDisableAtmosphere": true,
+  "FFlagDisableBloom": true,
+  "FFlagDisableParticles": true,
+  "FFlagDisableGrass": true,
+  "FFlagDisableShadows": true,
+  "FFlagDisableLighting": true,
+  "FFlagDisableTerrainDecoration": true,
+  "FFlagDebugSkyGray": true,
+  "FFlagDebugForceLowGraphicsMode": true
+}
