@@ -1,10 +1,11 @@
 {
-"FIntCLI20390_2": "-1",
-"DFFlagDisableDPIScale": "True", "DFIntMaxAverageFrameDelayExceedFactor": "0",
-"DFIntMaxAcceptableUpdateDelay": "0",
-"DFIntTargetTimeDelayFacctorTenths": "1",
-"DFIntClientPacketMaxDelayMs": "0",
-"DFIntMaxFrameBufferSize": "1",
-"DFIntConnectionMTUSize": "1472",
-"FIntInterpolationAwareTargetTimeLerpHundredth": "100",
+  "FIntCLI20390_2": -1,
+  "DFFlagDisableDPIScale": true,
+  "DFIntMaxAverageFrameDelayExceedFactor": 0,
+  "DFIntMaxAcceptableUpdateDelay": 0,
+  "DFIntTargetTimeDelayFactorTenths": 1,
+  "DFIntClientPacketMaxDelayMs": 0,
+  "DFIntMaxFrameBufferSize": 1,
+  "DFIntConnectionMTUSize": 1472,
+  "FIntInterpolationAwareTargetTimeLerpHundredth": 100
 }
