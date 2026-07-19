@@ -5,6 +5,100 @@ local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
+local executorEnvironment = _G
+
+if typeof(getgenv) == "function" then
+    local success, result = pcall(getgenv)
+
+    if success and type(result) == "table" then
+        executorEnvironment = result
+    end
+end
+
+local function tryClipboardFunction(callback, owner)
+    if typeof(callback) ~= "function" then
+        return false, nil
+    end
+
+    local success, result = pcall(callback)
+
+    if (not success or type(result) ~= "string") and owner then
+        success, result = pcall(callback, owner)
+    end
+
+    if success and type(result) == "string" and result ~= "" then
+        return true, result
+    end
+
+    return false, nil
+end
+
+local function readClipboard()
+    local environments = {
+        executorEnvironment,
+        _G,
+    }
+
+    local directNames = {
+        "getclipboard",
+        "readclipboard",
+        "get_clipboard",
+        "read_clipboard",
+    }
+
+    for _, currentEnvironment in ipairs(environments) do
+        if type(currentEnvironment) == "table" then
+            for _, functionName in ipairs(directNames) do
+                local success, result = tryClipboardFunction(
+                    rawget(currentEnvironment, functionName)
+                )
+
+                if success then
+                    return true, result
+                end
+            end
+        end
+    end
+
+    local clipboardTables = {
+        type(executorEnvironment) == "table" and rawget(executorEnvironment, "Clipboard") or nil,
+        type(executorEnvironment) == "table" and rawget(executorEnvironment, "clipboard") or nil,
+        type(_G) == "table" and rawget(_G, "Clipboard") or nil,
+        type(_G) == "table" and rawget(_G, "clipboard") or nil,
+    }
+
+    local methodNames = {
+        "get",
+        "read",
+        "Get",
+        "Read",
+        "getText",
+        "GetText",
+        "gettext",
+    }
+
+    for _, clipboardTable in ipairs(clipboardTables) do
+        if type(clipboardTable) == "table" then
+            for _, methodName in ipairs(methodNames) do
+                local success, result = tryClipboardFunction(
+                    rawget(clipboardTable, methodName),
+                    clipboardTable
+                )
+
+                if success then
+                    return true, result
+                end
+            end
+        end
+    end
+
+    return false, nil
+end
+
+local function trimText(value)
+    return (tostring(value or ""):gsub("^%s*(.-)%s*$", "%1"))
+end
+
 local DEFAULT_FFLAGS = [[{
   "FFlagEnableAccessibilitySettingsEffectsInExperienceChat": "True",
   "FFlagEnableToastLiteRender": "true",
@@ -355,7 +449,7 @@ Instance.new("UICorner", titleLabel)
 local rawUrlBox = Instance.new("TextBox", mainFrame)
 rawUrlBox.PlaceholderText = "Paste Raw GitHub URL here..."
 rawUrlBox.Text = ""
-rawUrlBox.Size = UDim2.new(0, 320, 0, 35)
+rawUrlBox.Size = UDim2.new(0, 230, 0, 35)
 rawUrlBox.Position = UDim2.new(0.05, 0, 0.2, 0)
 rawUrlBox.TextColor3 = Color3.new(1, 1, 1)
 rawUrlBox.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
@@ -371,6 +465,19 @@ pcall(function()
 end)
 
 Instance.new("UICorner", rawUrlBox)
+
+
+local pasteUrlButton = Instance.new("TextButton", mainFrame)
+pasteUrlButton.Text = "Paste"
+pasteUrlButton.Size = UDim2.new(0, 85, 0, 35)
+pasteUrlButton.Position = UDim2.new(0, 253, 0.2, 0)
+pasteUrlButton.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
+pasteUrlButton.BackgroundTransparency = 0.8
+pasteUrlButton.TextColor3 = Color3.new(1, 1, 1)
+pasteUrlButton.Font = Enum.Font.Cartoon
+pasteUrlButton.TextSize = 16
+
+Instance.new("UICorner", pasteUrlButton)
 
 local openEditorButton = Instance.new("TextButton", mainFrame)
 openEditorButton.Text = "Open Editor"
@@ -485,8 +592,8 @@ end)
 
 local closeEditorButton = Instance.new("TextButton", editorFrame)
 closeEditorButton.Text = "Close"
-closeEditorButton.Size = UDim2.new(0, 145, 0, 35)
-closeEditorButton.Position = UDim2.new(0.05, 0, 0.8, 0)
+closeEditorButton.Size = UDim2.new(0, 95, 0, 35)
+closeEditorButton.Position = UDim2.new(0, 17, 0.8, 0)
 closeEditorButton.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
 closeEditorButton.TextColor3 = Color3.new(1, 1, 1)
 closeEditorButton.Font = Enum.Font.Cartoon
@@ -496,14 +603,27 @@ Instance.new("UICorner", closeEditorButton)
 
 local applyEditorButton = Instance.new("TextButton", editorFrame)
 applyEditorButton.Text = "Apply FFlag"
-applyEditorButton.Size = UDim2.new(0, 145, 0, 35)
-applyEditorButton.Position = UDim2.new(0.51, 0, 0.8, 0)
+applyEditorButton.Size = UDim2.new(0, 95, 0, 35)
+applyEditorButton.Position = UDim2.new(0, 227, 0.8, 0)
 applyEditorButton.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
 applyEditorButton.TextColor3 = Color3.new(1, 1, 1)
 applyEditorButton.Font = Enum.Font.Cartoon
 applyEditorButton.ZIndex = 11
 
 Instance.new("UICorner", applyEditorButton)
+
+
+local pasteEditorButton = Instance.new("TextButton", editorFrame)
+pasteEditorButton.Text = "Paste"
+pasteEditorButton.Size = UDim2.new(0, 95, 0, 35)
+pasteEditorButton.Position = UDim2.new(0, 122, 0.8, 0)
+pasteEditorButton.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
+pasteEditorButton.TextColor3 = Color3.new(1, 1, 1)
+pasteEditorButton.Font = Enum.Font.Cartoon
+pasteEditorButton.TextSize = 16
+pasteEditorButton.ZIndex = 11
+
+Instance.new("UICorner", pasteEditorButton)
 
 local function setTextInputFocused(focused)
     mainFrame.Draggable = not focused
@@ -523,6 +643,33 @@ end)
 
 jsonBox.FocusLost:Connect(function()
     setTextInputFocused(false)
+end)
+
+
+local function pasteIntoTextBox(textBox, trimResult)
+    local success, clipboardText = readClipboard()
+
+    if not success then
+        notify("Clipboard", "Clipboard reading is unavailable")
+        return false
+    end
+
+    if trimResult then
+        clipboardText = trimText(clipboardText)
+    end
+
+    textBox.Text = clipboardText
+    textBox:ReleaseFocus()
+    notify("Clipboard", "Pasted successfully")
+    return true
+end
+
+pasteUrlButton.MouseButton1Click:Connect(function()
+    pasteIntoTextBox(rawUrlBox, true)
+end)
+
+pasteEditorButton.MouseButton1Click:Connect(function()
+    pasteIntoTextBox(jsonBox, false)
 end)
 
 local mainVisible = true
