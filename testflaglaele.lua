@@ -1,3777 +1,578 @@
-deu esse erro. ele leu a raw certinho, oque pode ser? (nao precisa fazer nada, so me fala oq tu acha.)
-
-testei no mobile, deu isso ai.
-
-deu essa agr
-
-n4nr9q8.txt
-Document
-ta ai as flags
-
-w0k5nzp.txt
-Document
-toma
-
-Pronto:
-
-É uma reconstrução legível e funcional do arquivo ofuscado. Como ele estava virtualizado pelo Prometheus, nomes originais de variáveis e comentários não podem ser recuperados exatamente, mas a interface e o comportamento foram reproduzidos.
-
-O principal problema encontrado é que o script remove o prefixo antes de chamar setfflag:
-
-DFFlagDisableDPIScale → DisableDPIScale
-DFIntTextureQualityOverride → TextureQualityOverride
-FFlagDisablePostFx → DisablePostFx
-
-Isso explica bastante dos erros anteriores: o executor recebia nomes incompletos e podia considerar as flags inválidas. Mantive esse comportamento no arquivo desofuscado para representar fielmente o original.
-
-Today 2:41 PM
-entendi, entao refaz o script que a gente fez antes de voce desofuscar esse que te mandei com base no sistema desse ai. mas deixa a interface antiga mesmo
-
-Mantive a interface preta e branca anterior. O sistema interno agora:
-
-    Remove prefixos como DFFlag, FFlag, DFInt e FInt antes do setfflag.
-
-    Tenta o nome completo como fallback caso o nome sem prefixo gere erro.
-
-    Aceita RAWs com nomes completos ou já sem prefixo.
-
-    Não interpreta retorno false como falha.
-
-    Remove duplicatas como FFlagDisablePostFx e DisablePostFx, preferindo o nome completo.
-
-    Salva o nome realmente usado pelo executor para tentar restaurar corretamente depois.
-
-    Mantém busca, paginação, edição, carregamento por RAW e restauração.
-
-
-verifica o codigo todo denovo, nao ta executando ou nn ta aparecendo a interface
-
-Refiz usando a versão preta e branca anterior como base, sem alterar a interface. Validei a sintaxe do arquivo inteiro.
-
-O sistema agora:
-
-    Tenta primeiro o nome sem prefixo, como DisablePostFx.
-
-    Se der erro real, tenta o nome completo, como FFlagDisablePostFx.
-
-    Não considera retorno false como falha.
-
-    Guarda exatamente qual nome o executor aceitou.
-
-    Usa esse mesmo nome na restauração.
-
-    Captura o valor original das duas variantes antes de aplicar.
-
-    Mantém o parser, RAW, busca, paginação e interface da versão que já aparecia corretamente.
-
-A causa exata da bw2 não ficou comprovada sem a mensagem do console do executor, mas ela foi descartada em vez de receber mais remendos.
-
-
-Library
-/average_fflag_editor_bw3.lua
-
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
 
-local player = Players.LocalPlayer
-if not player then
-    return
-end
+local DEFAULT_FFLAGS = [[{
+  "FFlagEnableAccessibilitySettingsEffectsInExperienceChat": "True",
+  "FFlagEnableToastLiteRender": "true",
+  "FFlagRenderEnableGlobalInstancingD3D11": "true",
+  "DFFlagTeleportPreloadingMetrics5": "true",
+  "FFlagReduceTextureMemory": "True",
+  "DFFlagRakNetDetectNetUnreachable": "True",
+  "DFIntReplicationBatchSize": "32",
+  "DFFlagQueueDataPingFromSendData": "True",
+  "DFIntRenderThrottlePercentage": "100",
+  "DFFlagFixUIRenderModifierUnibarBug": "true",
+  "DFIntMemoryCleanupDelay": "1000",
+  "DFIntTexturePoolSize": "512",
+  "FFlagPushFrameTimeToHarmony": "true",
+  "FFlagRenderFixULGlassRefraction": "true",
+  "DFFlagPerformanceControlEnableMemoryProbing3": "true",
+  "DFIntMobileTextureQuality": "2",
+  "FFlagQuaternionPoseCorrection": "true",
+  "DFFlagRakNetEnablePoll": "true",
+  "FFlagLuauCodegen": "true",
+  "DFFlagUnifyLegacyJointGeometry": "true",
+  "FFlagScreenGuiDoNotRenderUnderViewportFrame": "true",
+  "FFlagFixGraphicsQuality": "True",
+  "DFFlagRenderMeshBulkUploadEnable": "true",
+  "FFlagUserShowGuiHideToggles": "true",
+  "DFFlagRenderEmitterOcclusionCulling": "true",
+  "DFFlagFrameTimeJitterMedians2": "True",
+  "DFFlagSimDCDEnableWithoutRollout2": "true",
+  "FFlagEnableQuickGameLaunch": "true",
+  "FFlagDebugDisableTelemetryEventIngest": "True",
+  "FFlagVoiceBetaBadge": "False",
+  "FFlagUserUpdateInputConnections": "true",
+  "FFlagEnablePreferredTextSizeGuiService": "true",
+  "FFlagEnableTerrainOptimizations": "True",
+  "DFFlagEnableSoundPreloading": "true",
+  "DFFlagDebugSkipMeshVoxelizer": "true",
+  "FFlagHandleAltEnterFullscreenManually": "false",
+  "DFFlagDisableDPIScale": "true",
+  "DFFlagMatrixFromEulerPerf": "true",
+  "FFlagCommitToGraphicsQualityFix": "True",
+  "FIntRenderShadowIntensity": "0",
+  "FStringWhitelistVerifiedUserId": "1909432994",
+  "FFlagEnableInGameMenuV3": "True",
+  "DFFlagEnableTexturePreloading": "true",
+  "FFlagFixInputLag": "True",
+  "DFFlagRenderDeferredExecutionEnabled": "True",
+  "FFlagImproveShiftLockTransition": "true",
+  "FFlagEnablePingOptimizations": "True",
+  "DFFlagRenderFastClusterOcclusionCulling": "false",
+  "FFlagMouseGetPartOptimization": "true",
+  "DFFlagSimSkipVoxelCDECMerge": "true",
+  "DFFlagAllowRegistrationOfAnimationClipInCoreScripts": "true",
+  "DFFlagSkipSomeProperties": "true",
+  "DFFlagDebugRenderForceTechnologyVoxel": "True",
+  "FFlagUISUseLastFrameTimeInUpdateInputSignal": "true",
+  "FFlagRenderDeferShaderLoading": "true",
+  "DFFlagTeleportClientAssetPreloadingEnabledIXP2": "true",
+  "DFFlagDebugPauseVoxelizer": "true",
+  "DFIntTextureQualityOverride": "1",
+  "DFFlagOnlyDecrementCompletenessIfReplicating": "true",
+  "FFlagDisablePostFx": "true",
+  "FFlagOptimizeMobileRendering": "True",
+  "FFlagOptimizeAvatarLoading": "True",
+  "DFIntTextureCompressionLevel": "1",
+  "DFFlagOptimizePartsInPart": "true",
+  "FFlagTaskSchedulerLimitTargetFpsTo2402": "false",
+  "DFIntTaskSchedulerTargetFps": "29383",
+  "DFFlagRakNetDecoupleRecvAndUpdateLoopShutdown": "true",
+  "FIntFullscreenTitleBarTriggerDelayMillis": "3600000",
+  "FFlagRenderFallbackToPBR": "False",
+  "FFlagLoginPageOptimizedPngs": "True",
+  "DFFlagRenderModelClusterOcclusionCulling": "false",
+  "DFIntRaknetBandwidthPingSendEveryXSeconds": "1",
+  "DFIntRakNetResendRttMultiple": "1",
+  "FFlagEnableMenuControlsABTest": "False",
+  "DFFlagOptimizeClusterCacheAlloc": "true",
+  "DFFlagRenderFastFlag3": "True",
+  "FFlagProcessEventQueueOnInput": "true",
+  "FFlagRenderLegacyShadowsQualityRefactor": "true",
+  "FFlagDisableChatWindowRerenderOnPlayerJoinAndLeave": "true",
+  "DFFlagTeleportClientAssetPreloadingEnabledIXP": "true",
+  "DFFlagClampIncomingReplicationLag": "true",
+  "FIntRomarkStartWithGraphicQualityLevel": "1",
+  "FFlagDebugDisableTelemetryV2Stat": "True",
+  "FFlagEnableInGameMenuModernization": "false",
+  "DFFlagGameNetFixReplicationSkipBug": "true",
+  "FFlagRenderEnableGlobalInstancing7": "true",
+  "FFlagRenderCBRefactor2": "true",
+  "FFlagRenderFixGrassPrepass": "true",
+  "FFlagEnableAggressivePacketResends": "True",
+  "FFlagUserBetterInertialScrolling": "true",
+  "DFFlagSkipReadDiskCacheRedirects": "true",
+  "FFlagEnableInGameMenuControls": "True",
+  "FFlagDebugDisableTelemetryV2Counter": "True",
+  "FIntDebugForceMSAASamples": "1",
+  "DFIntTextureCompositorActiveJobs": "0",
+  "FFlagRenderDebugCheckThreading2": "true",
+  "FFlagFastGPULightCulling3": "true",
+  "FFlagBillboardGuiOnlyLayoutWhenRenderable": "true",
+  "FLogNetwork": "7",
+  "DFIntGcStepSize": "200",
+  "DFIntMaxTextureSize": "2048",
+  "FFlagSimEnableDCD16": "true",
+  "FFlagGraphicsEnableD3D10Compute": "True",
+  "FFlagOptimizeSoundPlayback": "True",
+  "FFlagUseStableSort": "True",
+  "DFFlagDisableFastLogTelemetry": "true",
+  "DFFlagEnablePreloadAvatarAssets": "True",
+  "DFFlagRenderOptimizeWallClock2": "True",
+  "FFlagHttpAssetCacheInitOnly6": "True",
+  "FStringInGameMenuModernizationStickyBarForcedUserIds": "1909432994",
+  "FFlagAnimationClipMemCacheEnabled": "true",
+  "FFlagEarlyUpdateBoundings": "true",
+  "DFIntCullingFrustumPadding": "5",
+  "FFlagNewLightAttenuation": "True",
+  "FFlagRenderTestEnableDistanceCulling": "true",
+  "FFlagRenderSkipReadingShaderData": "true",
+  "FFlagOptimizeUIBlur": "True",
+  "DFFlagSimSolverOptimizeLDLCache": "True",
+  "FFlagFixIGMTabTransitions": "True",
+  "FFlagLuaMenuPerfImprovements": "true",
+  "FFlagEnableRbxPostAPI": "True",
+  "DFFlagCorrectCachePolicySkipRedirectCache": "true",
+  "DFFlagSkipSomePropertiesSkip": "true",
+  "DFIntPerformanceControlTextureQualityBestUtility": "-1",
+  "DFFlagDebugPerfMode": "true",
+  "DFFlagSampleAndRefreshRakPing": "true",
+  "FFlagDontCreatePingJob": "True",
+  "FFlagEnableTerrainFoliageOptimizations": "True",
+  "FFlagDebugDisableTelemetryEphemeralStat": "True",
+  "FIntDebugTextureManagerSkipMips": "10",
+  "FFlagRenderFixSurfaceLight": "true",
+  "DFIntInputBufferSize": "3",
+  "DFIntSoundChannels": "24",
+  "DFIntRenderQueueSize": "64",
+  "FFlagEnableV3MenuABTest3": "False",
+  "FFlagDebugDisableParticleEmitterCulling": "False",
+  "FFlagUserCameraInputDt": "true",
+  "FFlagEnableAccessibilitySettingsAPIV2": "True",
+  "FFlagEnableRateLimiting": "True",
+  "FFlagGpuGeometryManager7": "True",
+  "FFlagEnablePreferredTextSizeStyleFixesInAppShell3": "True",
+  "FFlagTopBarUseNewBadge": "false",
+  "FFlagUserCameraInputRefactor3": "true",
+  "DFIntShaderCacheSize": "256",
+  "DFIntCodecMaxIncomingPackets": "100",
+  "FFlagEnableNewInput": "True",
+  "DFIntGuiInsetMaxCorrection": "10",
+  "FFlagEnableAccessibilitySettingsInExperienceMenu2": "True",
+  "FFlagTweenOptimizations": "True",
+  "DFFlagUpdateClientChannelA": "true",
+  "DFFlagAllowPropertyDefaultSkip": "true",
+  "DFIntPathfindingThreads": "2",
+  "DFFlagEnableMeshPreloading2": "true",
+  "FFlagEnableAccessibilitySettingsEffectsInCoreScripts2": "True",
+  "FFlagRenderNoLowFrmBloom": "true",
+  "FStringVoiceBetaBadgeLearnMoreLink": "null",
+  "DFFlagJointIrregularityOptimization": "true",
+  "FFlagRenderFixBrokenAvatarShadow": "true",
+  "FFlagRenderDX11FixWaitForGpu": "true",
+  "FFlagBatchAssetApi": "True",
+  "FFlagBetaBadgeLearnMoreLinkFormview": "False",
+  "FFlagFixMemoryLeaks": "True",
+  "FFlagAssetImportRemoveAnimationSuffix": "true",
+  "DFIntMaxParticleEmitters": "100",
+  "FFlagAssetPreloadingIXP": "true",
+  "FIntActivatedCountTimerMSMouse": "1",
+  "FFlagOptimizeNetworkReplication": "True",
+  "FFlagEnableInGameMenuSongbirdABTest": "false",
+  "FFlagDebugDisableTelemetryV2Event": "True",
+  "FFlagEnableFasterPathfinding": "True",
+  "FFlagUseNewMemoryManager": "True",
+  "FFlagEnableBetterCulling": "True",
+  "FFlagDebugSkyGray": "true",
+  "FFlagLuauSolverV2": "true",
+  "DFFlagMergeFakeInputEvents3": "true",
+  "FFlagEnableFasterRendering": "True",
+  "FFlagFixTransparentSurfacesZOrder": "True",
+  "FFlagRenderGpuTextureCompressor": "true",
+  "FFlagLuaAppExitModalDoNotShow": "True",
+  "FFlagLuaAppLegacyInputSettingRefactor": "true",
+  "FFlagPreloadTextureItemsOption4": "true",
+  "FFlagRenderDynamicResolutionScale12": "true",
+  "FFlagMessageBusCallOptimization": "True",
+  "FFlagDebugDisableTelemetryPoint": "True",
+  "DFFlagSimOptimizeSetSize": "true",
+  "DFFlagTeleportClientAssetPreloadingEnabled9": "true",
+  "FFlagReduceShaderCompilation": "True",
+  "FFlagSimOptimizeGeometryChangedAssemblies": "true",
+  "FFlagGcInParallelWithRenderPrepare3": "true",
+  "FFlagRenderUnifiedLighting16": "true",
+  "FFlagRenderFixFog": "True",
+  "DFIntAvatarCacheSize": "50",
+  "DFFlagTeleportClientAssetPreloadingDoingExperiment2": "true",
+  "FIntTerrainArraySliceSize": "0",
+  "FFlagGameBasicSettingsFramerateCap5": "false",
+  "DFIntDebugFRMQualityLevelOverride": "1",
+  "DFFlagTextureQualityOverrideEnabled": "true",
+  "FFlagControlBetaBadgeWithGuac": "false",
+  "DFFlagSimDcdRecompUseClosedVoxel4": "true",
+  "FIntActivatedCountTimerMSKeyboard": "1",
+  "FFlagHighlightOutlinesOnMobile": "true",
+  "FFlagDebugGraphicsPreferD3D11": "true",
+  "FFlagDebugDisableTelemetryEphemeralCounter": "True",
+  "FFlagFutureIsBrightPhase3": "False",
+  "FFlagEnableGCStepSize": "True",
+  "DFFlagRakNetDisconnectNotification": "True",
+  "FFlagEnablePreferredTextSizeScale": "true",
+  "DFIntMaxProcessPacketsStepsPerCyclic": "5000",
+  "FFlagGraphicsFixMsaaInGuiScene": "true",
+  "FFlagAdServiceEnabled": "false"
+}]]
 
-local function getEnvironment()
-    if typeof(getgenv) == "function" then
-        local success, result = pcall(getgenv)
-
-        if success and type(result) == "table" then
-            return result
-        end
-    end
-
-    return _G
-end
-
-local environment = getEnvironment()
-
-local function lookup(name)
-    local value = environment[name]
-
-    if value ~= nil then
-        return value
-    end
-
-    return rawget(_G, name)
-end
-
-local function firstFunction(...)
-    for index = 1, select("#", ...) do
-        local value = select(index, ...)
-
-        if typeof(value) == "function" then
-            return value
-        end
-    end
-
-    return nil
-end
-
-local SESSION_KEY = "__AVERAGE_FFLAG_EDITOR_BW_SESSION"
-local LAST_URL_KEY = "__AVERAGE_FFLAG_EDITOR_LAST_URL"
-local LEGACY_SESSION_KEYS = {
-    "__AVERAGE_FFLAG_EDITOR_SESSION",
-    "__AVERAGE_FFLAG_EDITOR_V2_SESSION",
-    SESSION_KEY,
-}
-
-for _, key in ipairs(LEGACY_SESSION_KEYS) do
-    local oldSession = environment[key]
-
-    if type(oldSession) == "table" and typeof(oldSession.destroy) == "function" then
-        pcall(oldSession.destroy)
-    end
-end
-
-local setFlagFunction = firstFunction(lookup("setfflag"))
-local getFlagFunction = firstFunction(lookup("getfflag"))
-local synEnvironment = lookup("syn")
-local fluxusEnvironment = lookup("fluxus")
-
-local requestFunction = firstFunction(
-    lookup("request"),
-    lookup("http_request"),
-    lookup("httprequest"),
-    type(synEnvironment) == "table" and synEnvironment.request or nil,
-    type(fluxusEnvironment) == "table" and fluxusEnvironment.request or nil
-)
-
-local guiParent = player:WaitForChild("PlayerGui")
-local getHiddenUi = lookup("gethui")
-
-if typeof(getHiddenUi) == "function" then
-    local success, result = pcall(getHiddenUi)
-
-    if success and result then
-        guiParent = result
-    end
-end
-
-local connections = {}
-local destroyed = false
-local screenGui
-local session
-
-local function connect(signal, callback)
-    local connection = signal:Connect(callback)
-    table.insert(connections, connection)
-    return connection
-end
-
-local function destroy()
-    if destroyed then
-        return
-    end
-
-    destroyed = true
-
-    for _, connection in ipairs(connections) do
-        pcall(function()
-            connection:Disconnect()
-        end)
-    end
-
-    table.clear(connections)
-
-    if screenGui then
-        pcall(function()
-            screenGui:Destroy()
-        end)
-    end
-
-    if environment[SESSION_KEY] == session then
-        environment[SESSION_KEY] = nil
-    end
-end
-
-session = {
-    destroy = destroy,
-}
-
-environment[SESSION_KEY] = session
-
-for _, name in ipairs({
-    "AverageFFlagEditor",
-    "AverageFFlagEditorV2",
-    "AverageFFlagEditorBW",
-}) do
-    local oldGui = guiParent:FindFirstChild(name)
-
-    if oldGui then
-        oldGui:Destroy()
-    end
-end
-
-local function create(className, properties)
-    local instance = Instance.new(className)
-    local parent = properties.Parent
-
-    for property, value in pairs(properties) do
-        if property ~= "Parent" then
-            instance[property] = value
-        end
-    end
-
-    instance.Parent = parent
-    return instance
-end
-
-local function addCorner(instance, radius)
-    if radius <= 0 then
-        return nil
-    end
-
-    return create("UICorner", {
-        CornerRadius = UDim.new(0, radius),
-        Parent = instance,
-    })
-end
-
-local function addStroke(instance, color, transparency)
-    return create("UIStroke", {
-        Color = color,
-        Transparency = transparency or 0,
-        Thickness = 1,
-        Parent = instance,
-    })
-end
-
-local function addPadding(instance, left, right, top, bottom)
-    return create("UIPadding", {
-        PaddingLeft = UDim.new(0, left or 0),
-        PaddingRight = UDim.new(0, right or 0),
-        PaddingTop = UDim.new(0, top or 0),
-        PaddingBottom = UDim.new(0, bottom or 0),
-        Parent = instance,
-    })
-end
-
-local function trim(value)
-    return (tostring(value or ""):gsub("^%s*(.-)%s*$", "%1"))
-end
-
-local colors = {
-    background = Color3.fromRGB(7, 7, 7),
-    header = Color3.fromRGB(11, 11, 11),
-    panel = Color3.fromRGB(14, 14, 14),
-    field = Color3.fromRGB(19, 19, 19),
-    hover = Color3.fromRGB(26, 26, 26),
-    line = Color3.fromRGB(48, 48, 48),
-    lineBright = Color3.fromRGB(86, 86, 86),
-    text = Color3.fromRGB(242, 242, 242),
-    muted = Color3.fromRGB(154, 154, 154),
-    faint = Color3.fromRGB(92, 92, 92),
-    white = Color3.fromRGB(244, 244, 244),
-    black = Color3.fromRGB(5, 5, 5),
-}
-
-local function makeLabel(parent, text, position, size, options)
-    options = options or {}
-
-    return create("TextLabel", {
-        Position = position,
-        Size = size,
-        BackgroundTransparency = 1,
+local function notify(title, text)
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
         Text = text,
-        TextColor3 = options.color or colors.text,
-        TextSize = options.textSize or 11,
-        Font = options.font or Enum.Font.Gotham,
-        TextXAlignment = options.xAlignment or Enum.TextXAlignment.Left,
-        TextYAlignment = options.yAlignment or Enum.TextYAlignment.Center,
-        TextTruncate = options.truncate or Enum.TextTruncate.None,
-        Parent = parent,
+        Duration = 3,
     })
 end
 
-local function makeButton(parent, text, position, size, primary)
-    local button = create("TextButton", {
-        Position = position,
-        Size = size,
-        BackgroundColor3 = primary and colors.white or colors.panel,
-        BorderSizePixel = 0,
-        Text = text,
-        TextColor3 = primary and colors.black or colors.text,
-        TextSize = 10,
-        Font = Enum.Font.GothamBold,
-        AutoButtonColor = false,
-        Parent = parent,
-    })
-
-    addCorner(button, 2)
-    addStroke(button, primary and colors.white or colors.line, primary and 0 or 0.15)
-
-    return button
-end
-
-local function makeInput(parent, placeholder, position, size, codeFont)
-    local input = create("TextBox", {
-        Position = position,
-        Size = size,
-        BackgroundColor3 = colors.field,
-        BorderSizePixel = 0,
-        Text = "",
-        PlaceholderText = placeholder,
-        PlaceholderColor3 = colors.faint,
-        TextColor3 = colors.text,
-        TextSize = 11,
-        Font = codeFont and Enum.Font.Code or Enum.Font.Gotham,
-        ClearTextOnFocus = false,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = parent,
-    })
-
-    addCorner(input, 2)
-    addStroke(input, colors.line, 0.15)
-    addPadding(input, 8, 8)
-
-    return input
-end
-
-screenGui = create("ScreenGui", {
-    Name = "AverageFFlagEditorBW",
-    ResetOnSpawn = false,
-    IgnoreGuiInset = true,
-    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-    Parent = guiParent,
-})
-
-local openButton = makeButton(
-    screenGui,
-    "FF",
-    UDim2.new(1, -50, 0, 12),
-    UDim2.fromOffset(38, 26),
-    true
-)
-openButton.Visible = false
-
-local mainFrame = create("Frame", {
-    Name = "Window",
-    Size = UDim2.fromOffset(560, 402),
-    Position = UDim2.new(0.5, -280, 0.5, -201),
-    BackgroundColor3 = colors.background,
-    BorderSizePixel = 0,
-    ClipsDescendants = true,
-    Active = true,
-    Parent = screenGui,
-})
-
-addStroke(mainFrame, colors.lineBright, 0.2)
-
-local header = create("Frame", {
-    Name = "Header",
-    Size = UDim2.new(1, 0, 0, 34),
-    BackgroundColor3 = colors.header,
-    BorderSizePixel = 0,
-    Active = true,
-    Parent = mainFrame,
-})
-
-makeLabel(
-    header,
-    "FFLAG EDITOR",
-    UDim2.fromOffset(12, 0),
-    UDim2.new(1, -180, 1, 0),
-    {
-        textSize = 12,
-        font = Enum.Font.GothamBold,
+local function stripFlagPrefix(flagName)
+    local prefixes = {
+        "DFFlag",
+        "FFlag",
+        "DFInt",
+        "FInt",
+        "DFString",
+        "FString",
     }
-)
 
-local engineLabel = makeLabel(
-    header,
-    typeof(setFlagFunction) == "function" and "SETFFLAG READY" or "NO SETFFLAG",
-    UDim2.new(1, -170, 0, 0),
-    UDim2.fromOffset(126, 34),
-    {
-        color = typeof(setFlagFunction) == "function" and colors.muted or colors.faint,
-        textSize = 9,
-        font = Enum.Font.GothamBold,
-        xAlignment = Enum.TextXAlignment.Right,
-    }
-)
-
-local closeButton = create("TextButton", {
-    Size = UDim2.fromOffset(34, 34),
-    Position = UDim2.new(1, -34, 0, 0),
-    BackgroundColor3 = colors.header,
-    BorderSizePixel = 0,
-    Text = "×",
-    TextColor3 = colors.muted,
-    TextSize = 18,
-    Font = Enum.Font.Gotham,
-    AutoButtonColor = false,
-    Parent = header,
-})
-
-local urlInput = makeInput(
-    mainFrame,
-    "GitHub RAW or github.com/.../blob/...",
-    UDim2.fromOffset(12, 44),
-    UDim2.fromOffset(430, 28),
-    true
-)
-urlInput.Text = type(environment[LAST_URL_KEY]) == "string" and environment[LAST_URL_KEY] or ""
-
-local loadButton = makeButton(
-    mainFrame,
-    "LOAD RAW",
-    UDim2.fromOffset(450, 44),
-    UDim2.fromOffset(98, 28),
-    true
-)
-
-local searchInput = makeInput(
-    mainFrame,
-    "Search flags  Ctrl+F",
-    UDim2.fromOffset(12, 80),
-    UDim2.fromOffset(264, 26),
-    false
-)
-
-local countLabel = makeLabel(
-    mainFrame,
-    "0 FLAGS",
-    UDim2.fromOffset(286, 80),
-    UDim2.fromOffset(110, 26),
-    {
-        color = colors.muted,
-        textSize = 9,
-        font = Enum.Font.GothamBold,
-    }
-)
-
-local selectButton = makeButton(
-    mainFrame,
-    "ALL",
-    UDim2.fromOffset(396, 80),
-    UDim2.fromOffset(54, 26),
-    false
-)
-
-local addButton = makeButton(
-    mainFrame,
-    "+",
-    UDim2.fromOffset(456, 80),
-    UDim2.fromOffset(32, 26),
-    false
-)
-addButton.TextSize = 16
-
-local clearButton = makeButton(
-    mainFrame,
-    "CLR",
-    UDim2.fromOffset(494, 80),
-    UDim2.fromOffset(54, 26),
-    false
-)
-clearButton.TextColor3 = colors.muted
-
-makeLabel(mainFrame, "ON", UDim2.fromOffset(16, 108), UDim2.fromOffset(24, 16), {
-    color = colors.faint,
-    textSize = 8,
-    font = Enum.Font.GothamBold,
-    xAlignment = Enum.TextXAlignment.Center,
-})
-
-makeLabel(mainFrame, "FLAG", UDim2.fromOffset(46, 108), UDim2.fromOffset(300, 16), {
-    color = colors.faint,
-    textSize = 8,
-    font = Enum.Font.GothamBold,
-})
-
-makeLabel(mainFrame, "VALUE", UDim2.fromOffset(350, 108), UDim2.fromOffset(158, 16), {
-    color = colors.faint,
-    textSize = 8,
-    font = Enum.Font.GothamBold,
-})
-
-local rowsPanel = create("Frame", {
-    Size = UDim2.fromOffset(536, 198),
-    Position = UDim2.fromOffset(12, 126),
-    BackgroundColor3 = colors.panel,
-    BorderSizePixel = 0,
-    ClipsDescendants = true,
-    Parent = mainFrame,
-})
-
-addStroke(rowsPanel, colors.line, 0.15)
-
-local previousButton = makeButton(
-    mainFrame,
-    "<",
-    UDim2.fromOffset(12, 332),
-    UDim2.fromOffset(26, 22),
-    false
-)
-
-local pageLabel = makeLabel(
-    mainFrame,
-    "1 / 1",
-    UDim2.fromOffset(42, 332),
-    UDim2.fromOffset(62, 22),
-    {
-        color = colors.muted,
-        textSize = 9,
-        font = Enum.Font.GothamMedium,
-        xAlignment = Enum.TextXAlignment.Center,
-    }
-)
-
-local nextButton = makeButton(
-    mainFrame,
-    ">",
-    UDim2.fromOffset(108, 332),
-    UDim2.fromOffset(26, 22),
-    false
-)
-
-local statusLabel = makeLabel(
-    mainFrame,
-    "",
-    UDim2.fromOffset(144, 332),
-    UDim2.fromOffset(404, 22),
-    {
-        color = colors.muted,
-        textSize = 9,
-        xAlignment = Enum.TextXAlignment.Right,
-        truncate = Enum.TextTruncate.AtEnd,
-    }
-)
-
-local applyButton = makeButton(
-    mainFrame,
-    "APPLY ENABLED",
-    UDim2.fromOffset(12, 362),
-    UDim2.fromOffset(264, 28),
-    true
-)
-
-local restoreButton = makeButton(
-    mainFrame,
-    "RESTORE ORIGINALS",
-    UDim2.fromOffset(284, 362),
-    UDim2.fromOffset(264, 28),
-    false
-)
-restoreButton.TextColor3 = colors.muted
-
-local function bindHover(button, normalColor, hoverColor, normalText, hoverText)
-    connect(button.MouseEnter, function()
-        if destroyed then
-            return
+    for _, prefix in ipairs(prefixes) do
+        if flagName:sub(1, #prefix) == prefix then
+            return flagName:sub(#prefix + 1)
         end
+    end
 
-        button.BackgroundColor3 = hoverColor
+    return flagName
+end
 
-        if hoverText then
-            button.TextColor3 = hoverText
-        end
+local function applyJson(jsonText)
+    local decodedSuccessfully, decoded = pcall(function()
+        return HttpService:JSONDecode(jsonText)
     end)
 
-    connect(button.MouseLeave, function()
-        if destroyed then
-            return
-        end
-
-        button.BackgroundColor3 = normalColor
-
-        if normalText then
-            button.TextColor3 = normalText
-        end
-    end)
-end
-
-bindHover(openButton, colors.white, colors.text, colors.black, colors.black)
-bindHover(loadButton, colors.white, colors.text, colors.black, colors.black)
-bindHover(applyButton, colors.white, colors.text, colors.black, colors.black)
-bindHover(closeButton, colors.header, colors.hover, colors.muted, colors.text)
-bindHover(selectButton, colors.panel, colors.hover, colors.text, colors.text)
-bindHover(addButton, colors.panel, colors.hover, colors.text, colors.text)
-bindHover(clearButton, colors.panel, colors.hover, colors.muted, colors.text)
-bindHover(previousButton, colors.panel, colors.hover, colors.text, colors.text)
-bindHover(nextButton, colors.panel, colors.hover, colors.text, colors.text)
-bindHover(restoreButton, colors.panel, colors.hover, colors.muted, colors.text)
-
-local statusToken = 0
-
-local function setStatus(text, statusType, duration)
-    statusToken = statusToken + 1
-    local token = statusToken
-    local prefix = ""
-
-    if statusType == "success" then
-        prefix = "OK  "
-        statusLabel.TextColor3 = colors.text
-    elseif statusType == "warning" then
-        prefix = "NOTE  "
-        statusLabel.TextColor3 = colors.muted
-    elseif statusType == "error" then
-        prefix = "ERR  "
-        statusLabel.TextColor3 = colors.text
-    else
-        statusLabel.TextColor3 = colors.muted
-    end
-
-    statusLabel.Text = prefix .. tostring(text or "")
-
-    if duration then
-        task.delay(duration, function()
-            if destroyed or token ~= statusToken then
-                return
-            end
-
-            statusLabel.Text = ""
-            statusLabel.TextColor3 = colors.muted
-        end)
-    end
-end
-
-local flags = {}
-local flagIndexByName = {}
-local filteredIndices = {}
-local originalValues = {}
-local appliedFlags = {}
-local currentPage = 1
-local PAGE_SIZE = 7
-local MAX_FLAGS = 5000
-local MAX_BODY_SIZE = 6 * 1024 * 1024
-local loading = false
-local busy = false
-local rowPool = {}
-
-local recognizedPrefixes = {
-    "DFFlag",
-    "FFlag",
-    "DFInt",
-    "FInt",
-    "DFString",
-    "FString",
-    "DFLog",
-    "FLog",
-    "SFFlag",
-    "SFInt",
-    "SFString",
-}
-
-local function isIdentifier(name)
-    return type(name) == "string"
-        and #name > 0
-        and #name <= 220
-        and name:match("^[%a_][%w_]*$") ~= nil
-end
-
-local function isRecognizedFlagName(name)
-    if not isIdentifier(name) then
-        return false
-    end
-
-    for _, prefix in ipairs(recognizedPrefixes) do
-        if name:sub(1, #prefix) == prefix then
-            return true
-        end
-    end
-
-    return false
-end
-
-local function stripFlagPrefix(name)
-    local normalizedName = trim(name)
-
-    for _, prefix in ipairs(recognizedPrefixes) do
-        if normalizedName:sub(1, #prefix) == prefix then
-            local strippedName = normalizedName:sub(#prefix + 1)
-
-            if isIdentifier(strippedName) then
-                return strippedName
-            end
-        end
-    end
-
-    return normalizedName
-end
-
-local function getRuntimeCandidates(name, preferredName)
-    local candidates = {}
-    local used = {}
-
-    local function add(candidate)
-        candidate = trim(candidate)
-
-        if isIdentifier(candidate) and not used[candidate] then
-            used[candidate] = true
-            table.insert(candidates, candidate)
-        end
-    end
-
-    add(preferredName)
-    add(stripFlagPrefix(name))
-    add(name)
-
-    return candidates
-end
-
-local function rebuildNameIndex()
-    table.clear(flagIndexByName)
-
-    for index, item in ipairs(flags) do
-        flagIndexByName[item.name] = index
-        item.applied = appliedFlags[item.name] ~= nil
-    end
-end
-
-local function getEnabledCount()
-    local count = 0
-
-    for _, item in ipairs(flags) do
-        if item.enabled then
-            count = count + 1
-        end
-    end
-
-    return count
-end
-
-local function updateCount()
-    local enabled = getEnabledCount()
-    countLabel.Text = tostring(#flags) .. " FLAGS  " .. tostring(enabled) .. " ON"
-    selectButton.Text = #flags > 0 and enabled == #flags and "NONE" or "ALL"
-end
-
-local function rebuildFilter()
-    table.clear(filteredIndices)
-
-    local query = trim(searchInput.Text):lower()
-
-    for index, item in ipairs(flags) do
-        local match = query == ""
-            or item.name:lower():find(query, 1, true) ~= nil
-            or tostring(item.value):lower():find(query, 1, true) ~= nil
-
-        if match then
-            table.insert(filteredIndices, index)
-        end
-    end
-
-    local pageCount = math.max(1, math.ceil(#filteredIndices / PAGE_SIZE))
-    currentPage = math.clamp(currentPage, 1, pageCount)
-end
-
-local function updateRow(row, item)
-    if not item then
-        row.frame.Visible = false
-        row.itemIndex = nil
+    if not decodedSuccessfully or type(decoded) ~= "table" then
+        notify("Error", "Invalid JSON format!")
         return
     end
 
-    row.frame.Visible = true
-    row.nameInput.Text = item.name
-    row.valueInput.Text = tostring(item.value)
-    row.enabledButton.Text = item.enabled and "X" or ""
-    row.enabledButton.BackgroundColor3 = item.enabled and colors.white or colors.field
-    row.enabledButton.TextColor3 = item.enabled and colors.black or colors.text
+    local appliedCount = 0
 
-    if item.state == "failed" then
-        row.nameInput.TextColor3 = colors.muted
-        row.stateLabel.Text = "!"
-    elseif item.state == "verified" then
-        row.nameInput.TextColor3 = colors.text
-        row.stateLabel.Text = "V"
-    elseif item.state == "sent" or item.state == "unconfirmed" then
-        row.nameInput.TextColor3 = colors.text
-        row.stateLabel.Text = "S"
-    else
-        row.nameInput.TextColor3 = item.enabled and colors.text or colors.muted
-        row.stateLabel.Text = ""
-    end
+    for flagName, value in pairs(decoded) do
+        local strippedName = stripFlagPrefix(tostring(flagName))
 
-    row.stateLabel.TextColor3 = item.state == "failed" and colors.muted or colors.faint
-end
-
-local function renderRows()
-    rebuildFilter()
-    updateCount()
-
-    local pageCount = math.max(1, math.ceil(#filteredIndices / PAGE_SIZE))
-    pageLabel.Text = tostring(currentPage) .. " / " .. tostring(pageCount)
-
-    local startIndex = ((currentPage - 1) * PAGE_SIZE) + 1
-
-    for rowNumber, row in ipairs(rowPool) do
-        local filteredPosition = startIndex + rowNumber - 1
-        local itemIndex = filteredIndices[filteredPosition]
-        row.itemIndex = itemIndex
-        updateRow(row, itemIndex and flags[itemIndex] or nil)
-    end
-end
-
-local function removeFlagAt(index)
-    local item = flags[index]
-
-    if not item then
-        return
-    end
-
-    table.remove(flags, index)
-    rebuildNameIndex()
-    renderRows()
-end
-
-for rowNumber = 1, PAGE_SIZE do
-    local row = create("Frame", {
-        Size = UDim2.new(1, -8, 0, 26),
-        Position = UDim2.fromOffset(4, 4 + ((rowNumber - 1) * 28)),
-        BackgroundColor3 = colors.field,
-        BorderSizePixel = 0,
-        Parent = rowsPanel,
-    })
-
-    addStroke(row, colors.line, 0.45)
-
-    local enabledButton = create("TextButton", {
-        Size = UDim2.fromOffset(20, 20),
-        Position = UDim2.fromOffset(3, 3),
-        BackgroundColor3 = colors.field,
-        BorderSizePixel = 0,
-        Text = "",
-        TextColor3 = colors.text,
-        TextSize = 9,
-        Font = Enum.Font.GothamBold,
-        AutoButtonColor = false,
-        Parent = row,
-    })
-
-    addStroke(enabledButton, colors.lineBright, 0.1)
-
-    local nameInput = create("TextBox", {
-        Size = UDim2.fromOffset(292, 26),
-        Position = UDim2.fromOffset(28, 0),
-        BackgroundTransparency = 1,
-        Text = "",
-        PlaceholderText = "Flag name",
-        PlaceholderColor3 = colors.faint,
-        TextColor3 = colors.text,
-        TextSize = 11,
-        Font = Enum.Font.Code,
-        ClearTextOnFocus = false,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = row,
-    })
-
-    addPadding(nameInput, 4, 4)
-
-    local valueInput = create("TextBox", {
-        Size = UDim2.fromOffset(154, 20),
-        Position = UDim2.fromOffset(324, 3),
-        BackgroundColor3 = colors.panel,
-        BorderSizePixel = 0,
-        Text = "",
-        PlaceholderText = "Value",
-        PlaceholderColor3 = colors.faint,
-        TextColor3 = colors.text,
-        TextSize = 11,
-        Font = Enum.Font.Code,
-        ClearTextOnFocus = false,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = row,
-    })
-
-    addStroke(valueInput, colors.line, 0.45)
-    addPadding(valueInput, 6, 6)
-
-    local stateLabel = makeLabel(
-        row,
-        "",
-        UDim2.fromOffset(481, 0),
-        UDim2.fromOffset(18, 26),
-        {
-            color = colors.faint,
-            textSize = 8,
-            font = Enum.Font.GothamBold,
-            xAlignment = Enum.TextXAlignment.Center,
-        }
-    )
-
-    local removeButton = create("TextButton", {
-        Size = UDim2.fromOffset(28, 20),
-        Position = UDim2.fromOffset(500, 3),
-        BackgroundColor3 = colors.panel,
-        BorderSizePixel = 0,
-        Text = "×",
-        TextColor3 = colors.faint,
-        TextSize = 15,
-        Font = Enum.Font.Gotham,
-        AutoButtonColor = false,
-        Parent = row,
-    })
-
-    addStroke(removeButton, colors.line, 0.45)
-
-    local rowData = {
-        frame = row,
-        enabledButton = enabledButton,
-        nameInput = nameInput,
-        valueInput = valueInput,
-        stateLabel = stateLabel,
-        removeButton = removeButton,
-        itemIndex = nil,
-    }
-
-    table.insert(rowPool, rowData)
-    bindHover(removeButton, colors.panel, colors.hover, colors.faint, colors.text)
-
-    connect(enabledButton.MouseButton1Click, function()
-        local index = rowData.itemIndex
-        local item = index and flags[index]
-
-        if not item or busy then
-            return
-        end
-
-        item.enabled = not item.enabled
-        renderRows()
-    end)
-
-    connect(removeButton.MouseButton1Click, function()
-        local index = rowData.itemIndex
-
-        if index and not busy then
-            removeFlagAt(index)
-        end
-    end)
-
-    connect(nameInput.FocusLost, function()
-        local index = rowData.itemIndex
-        local item = index and flags[index]
-
-        if not item then
-            return
-        end
-
-        local newName = trim(nameInput.Text)
-
-        if item.applied and newName ~= item.name then
-            nameInput.Text = item.name
-            setStatus("Restore the flag before renaming it", "warning", 4)
-            return
-        end
-
-        if not isIdentifier(newName) then
-            nameInput.Text = item.name
-            setStatus("Invalid flag name", "error", 4)
-            return
-        end
-
-        local duplicateIndex = flagIndexByName[newName]
-
-        if duplicateIndex and duplicateIndex ~= index then
-            nameInput.Text = item.name
-            setStatus("Flag already exists", "warning", 4)
-            return
-        end
-
-        item.name = newName
-        item.state = nil
-        item.error = nil
-        rebuildNameIndex()
-        renderRows()
-    end)
-
-    connect(valueInput.FocusLost, function()
-        local index = rowData.itemIndex
-        local item = index and flags[index]
-
-        if not item then
-            return
-        end
-
-        local newValue = trim(valueInput.Text)
-
-        if newValue == "" then
-            valueInput.Text = tostring(item.value)
-            setStatus("Value cannot be empty", "error", 4)
-            return
-        end
-
-        item.value = newValue
-        item.state = nil
-        item.error = nil
-        renderRows()
-    end)
-end
-
-local function normalizeParsedValue(value)
-    local valueType = type(value)
-
-    if valueType == "boolean" then
-        return value and "true" or "false"
-    end
-
-    if valueType == "number" then
-        return tostring(value)
-    end
-
-    if valueType ~= "string" then
-        return nil
-    end
-
-    local result = trim(value)
-    result = result:gsub("%s+%-%-.*$", "")
-    result = result:gsub("%s+//.*$", "")
-    result = trim(result)
-    result = result:gsub("[,;]+$", "")
-    result = trim(result)
-
-    local wrapped = result:match("^tostring%s*%((.*)%)$")
-
-    if wrapped then
-        result = trim(wrapped)
-    end
-
-    if #result >= 2 then
-        local firstCharacter = result:sub(1, 1)
-        local lastCharacter = result:sub(-1)
-
-        if firstCharacter == "\"" and lastCharacter == "\"" then
-            local success, decoded = pcall(function()
-                return HttpService:JSONDecode(result)
-            end)
-
-            if success and type(decoded) == "string" then
-                result = decoded
-            else
-                result = result:sub(2, -2)
-            end
-        elseif firstCharacter == "'" and lastCharacter == "'" then
-            result = result:sub(2, -2)
-            result = result:gsub("\\'", "'")
-            result = result:gsub("\\\\", "\\")
-        end
-    end
-
-    local lower = result:lower()
-
-    if result == "" or lower == "nil" or lower == "null" then
-        return nil
-    end
-
-    if lower == "true" or lower == "false" then
-        return lower
-    end
-
-    if #result > 1000 then
-        result = result:sub(1, 1000)
-    end
-
-    return result
-end
-
-local function parseFlags(text)
-    local parsed = {}
-    local parsedIndex = {}
-    local jsonMatches = 0
-    local textMatches = 0
-
-    local function addFlag(name, value, source)
-        name = trim(name)
-
-        if #parsed >= MAX_FLAGS or not isRecognizedFlagName(name) then
-            return false
-        end
-
-        local normalizedValue = normalizeParsedValue(value)
-
-        if normalizedValue == nil then
-            return false
-        end
-
-        local existingIndex = parsedIndex[name]
-
-        if existingIndex then
-            parsed[existingIndex].value = normalizedValue
-            return false
-        end
-
-        table.insert(parsed, {
-            name = name,
-            value = normalizedValue,
-            enabled = true,
-            applied = appliedFlags[name] ~= nil,
-            state = nil,
-            error = nil,
-        })
-
-        parsedIndex[name] = #parsed
-
-        if source == "json" then
-            jsonMatches = jsonMatches + 1
-        else
-            textMatches = textMatches + 1
-        end
-
-        return true
-    end
-
-    local cleanedText = text:gsub("^\239\187\191", "")
-    local jsonSuccess, decoded = pcall(function()
-        return HttpService:JSONDecode(cleanedText)
-    end)
-
-    if jsonSuccess and type(decoded) == "table" then
-        local function walk(value, depth)
-            if depth > 12 or #parsed >= MAX_FLAGS or type(value) ~= "table" then
-                return
-            end
-
-            local possibleName = rawget(value, "name")
-                or rawget(value, "flag")
-                or rawget(value, "key")
-            local possibleValue = rawget(value, "value")
-
-            if type(possibleName) == "string" and possibleValue ~= nil then
-                addFlag(possibleName, possibleValue, "json")
-            end
-
-            for key, child in pairs(value) do
-                if type(key) == "string"
-                    and isRecognizedFlagName(key)
-                    and type(child) ~= "table" then
-                    addFlag(key, child, "json")
-                elseif type(child) == "table" then
-                    walk(child, depth + 1)
-                end
-            end
-        end
-
-        walk(decoded, 0)
-    end
-
-    for line in cleanedText:gmatch("[^\r\n]+") do
-        local cleanLine = trim(line)
-        local name
-        local value
-
-        name, value = cleanLine:match("setfflag%s*%(%s*[\"']([%w_]+)[\"']%s*,%s*(.-)%s*%)")
-
-        if not name then
-            name, value = cleanLine:match("%[%s*[\"']([%w_]+)[\"']%s*%]%s*=%s*(.-)%s*[,;]?%s*$")
-        end
-
-        if not name then
-            name, value = cleanLine:match("^%s*[\"']([%w_]+)[\"']%s*:%s*(.-)%s*[,}]?%s*$")
-        end
-
-        if not name then
-            name, value = cleanLine:match("^%s*([%w_]+)%s*[=:]%s*(.-)%s*[,;]?%s*$")
-        end
-
-        if not name then
-            local possibleName, possibleValue = cleanLine:match("^%s*([%w_]+)%s+(.+)%s*$")
-
-            if possibleName and isRecognizedFlagName(possibleName) then
-                name = possibleName
-                value = possibleValue
-            end
-        end
-
-        if name and value then
-            addFlag(name, value, "text")
-        end
-
-        if #parsed >= MAX_FLAGS then
-            break
-        end
-    end
-
-    if #parsed == 0 then
-        for name, value in cleanedText:gmatch("%[%s*[\"']([%w_]+)[\"']%s*%]%s*=%s*([^,%r%n}]+)") do
-            addFlag(name, value, "text")
-
-            if #parsed >= MAX_FLAGS then
-                break
-            end
-        end
-    end
-
-    table.sort(parsed, function(left, right)
-        return left.name:lower() < right.name:lower()
-    end)
-
-    local formatName = "TEXT"
-
-    if jsonMatches > 0 and textMatches > 0 then
-        formatName = "JSON/TEXT"
-    elseif jsonMatches > 0 then
-        formatName = "JSON"
-    end
-
-    return parsed, formatName
-end
-
-local function normalizeGithubUrl(value)
-    local url = trim(value)
-
-    if url == "" then
-        return nil, "Paste a GitHub URL"
-    end
-
-    url = url:gsub("#.*$", "")
-    url = url:gsub("%?.*$", "")
-
-    local owner, repository, path = url:match("^https://github%.com/([^/]+)/([^/]+)/blob/(.+)$")
-
-    if owner and repository and path then
-        return "https://raw.githubusercontent.com/"
-            .. owner
-            .. "/"
-            .. repository
-            .. "/"
-            .. path
-    end
-
-    owner, repository, path = url:match("^https://github%.com/([^/]+)/([^/]+)/raw/(.+)$")
-
-    if owner and repository and path then
-        return "https://raw.githubusercontent.com/"
-            .. owner
-            .. "/"
-            .. repository
-            .. "/"
-            .. path
-    end
-
-    if url:match("^https://raw%.githubusercontent%.com/") then
-        return url
-    end
-
-    if url:match("^https://gist%.githubusercontent%.com/") then
-        return url
-    end
-
-    return nil, "Only GitHub RAW or GitHub blob links are accepted"
-end
-
-local function fetchText(url)
-    local requestError
-
-    if typeof(requestFunction) == "function" then
-        local success, response = pcall(requestFunction, {
-            Url = url,
-            Method = "GET",
-            Headers = {
-                ["Accept"] = "text/plain, application/json, */*",
-                ["User-Agent"] = "Average-FFlag-Editor",
-                ["Cache-Control"] = "no-cache",
-            },
-        })
-
-        if success then
-            if type(response) == "string" and response ~= "" then
-                return true, response
-            end
-
-            if type(response) == "table" then
-                local statusCode = tonumber(response.StatusCode or response.Status or response.status_code)
-                local body = response.Body or response.body or response.ResponseBody
-
-                if type(body) == "string"
-                    and body ~= ""
-                    and (not statusCode or (statusCode >= 200 and statusCode < 300)) then
-                    return true, body
-                end
-
-                requestError = "HTTP " .. tostring(statusCode or "error")
-            end
-        else
-            requestError = tostring(response)
-        end
-    end
-
-    local success, body = pcall(function()
-        return game:HttpGet(url, true)
-    end)
-
-    if success and type(body) == "string" and body ~= "" then
-        return true, body
-    end
-
-    return false, requestError or tostring(body)
-end
-
-local function loadRaw()
-    if loading or busy then
-        return
-    end
-
-    local normalizedUrl, urlError = normalizeGithubUrl(urlInput.Text)
-
-    if not normalizedUrl then
-        setStatus(urlError, "error", 5)
-        return
-    end
-
-    loading = true
-    loadButton.Text = "LOADING"
-    setStatus("Downloading RAW", "normal")
-
-    task.spawn(function()
-        local success, bodyOrError = fetchText(normalizedUrl)
-
-        if destroyed then
-            return
-        end
-
-        if not success then
-            loading = false
-            loadButton.Text = "LOAD RAW"
-            setStatus("Download failed  " .. tostring(bodyOrError), "error")
-            return
-        end
-
-        if #bodyOrError > MAX_BODY_SIZE then
-            loading = false
-            loadButton.Text = "LOAD RAW"
-            setStatus("RAW is larger than 6 MB", "error")
-            return
-        end
-
-        setStatus("Parsing flags", "normal")
-
-        local parsedFlags, formatName = parseFlags(bodyOrError)
-
-        loading = false
-        loadButton.Text = "LOAD RAW"
-
-        if #parsedFlags == 0 then
-            setStatus("No supported flags found", "warning")
-            return
-        end
-
-        flags = parsedFlags
-        currentPage = 1
-        searchInput.Text = ""
-        urlInput.Text = normalizedUrl
-        environment[LAST_URL_KEY] = normalizedUrl
-
-        rebuildNameIndex()
-        renderRows()
-
-        local suffix = #parsedFlags >= MAX_FLAGS and "  LIMIT" or ""
-        setStatus(tostring(#parsedFlags) .. " flags loaded  " .. formatName .. suffix, "success")
-    end)
-end
-
-local function canonicalValue(value)
-    local text = trim(value)
-    local lower = text:lower()
-
-    if lower == "true" or lower == "false" then
-        return "boolean", lower
-    end
-
-    local number = tonumber(text)
-
-    if number ~= nil then
-        return "number", number
-    end
-
-    return "string", text
-end
-
-local function valuesEquivalent(left, right)
-    local leftType, leftValue = canonicalValue(left)
-    local rightType, rightValue = canonicalValue(right)
-
-    if leftType == rightType then
-        return leftValue == rightValue
-    end
-
-    return tostring(leftValue) == tostring(rightValue)
-end
-
-local function readFlagValue(flagName)
-    if typeof(getFlagFunction) == "function" then
-        local success, value = pcall(getFlagFunction, flagName)
-
-        if success and value ~= nil then
-            return true, value, "executor"
-        end
-    end
-
-    if flagName:find("Flag", 1, true) ~= nil then
-        local success, value = pcall(function()
-            return settings():GetFFlag(flagName)
+        pcall(function()
+            setfflag(strippedName, tostring(value))
         end)
 
-        if success and value ~= nil then
-            return true, value, "settings"
-        end
+        appliedCount = appliedCount + 1
     end
 
-    local success, value = pcall(function()
-        return settings():GetFVariable(flagName)
-    end)
-
-    if success and value ~= nil then
-        return true, value, "settings"
-    end
-
-    return false, nil, nil
+    notify("Success", "Applied " .. tostring(appliedCount) .. " FFlags!")
 end
 
-local function writeFlag(flagName, value, preferredRuntimeName)
-    if typeof(setFlagFunction) ~= "function" then
-        return false, "failed", "setfflag is unavailable", nil
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AVERAGE_FFLAG_UI"
+screenGui.ResetOnSpawn = false
+local guiParent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+if typeof(gethui) == "function" then
+    local success, hiddenGui = pcall(gethui)
+
+    if success and hiddenGui then
+        guiParent = hiddenGui
     end
-
-    local errors = {}
-
-    for _, runtimeName in ipairs(getRuntimeCandidates(flagName, preferredRuntimeName)) do
-        local success, result = pcall(setFlagFunction, runtimeName, tostring(value))
-
-        if success then
-            local readable, currentValue = readFlagValue(runtimeName)
-
-            if readable then
-                if valuesEquivalent(currentValue, value) then
-                    return true, "verified", nil, runtimeName
-                end
-
-                return true, "unconfirmed", "readback did not match", runtimeName
-            end
-
-            return true, "sent", nil, runtimeName
-        end
-
-        table.insert(errors, runtimeName .. "  " .. tostring(result))
-    end
-
-    return false, "failed", table.concat(errors, " | "), nil
 end
 
-local function captureOriginalValues(flagName)
-    if originalValues[flagName] ~= nil then
-        return
-    end
+screenGui.Parent = guiParent
 
-    local captured = {}
+local toggleButton = Instance.new("TextButton", screenGui)
+toggleButton.Size = UDim2.new(0, 45, 0, 45)
+toggleButton.Position = UDim2.new(0.05, 0, 0.1, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(48, 25, 82)
+toggleButton.Text = ""
+toggleButton.Draggable = true
+toggleButton.Active = true
 
-    for _, runtimeName in ipairs(getRuntimeCandidates(flagName)) do
-        local readable, value = readFlagValue(runtimeName)
+Instance.new("UICorner", toggleButton)
 
-        captured[runtimeName] = {
-            readable = readable,
-            value = value,
-        }
-    end
+local toggleStroke = Instance.new("UIStroke", toggleButton)
+toggleStroke.Color = Color3.fromRGB(138, 90, 224)
 
-    originalValues[flagName] = captured
-end
+local togglePattern = Instance.new("ImageLabel", toggleButton)
+togglePattern.Image = "rbxassetid://6803353442"
+togglePattern.BackgroundTransparency = 1
+togglePattern.ImageTransparency = 0.95
+togglePattern.ScaleType = Enum.ScaleType.Tile
+togglePattern.TileSize = UDim2.new(0, 10, 0, 10)
+togglePattern.Size = UDim2.new(1, 0, 1, 0)
+togglePattern.BorderSizePixel = 0
+togglePattern.ZIndex = toggleButton.ZIndex
 
-local function getOriginalValue(flagName, runtimeName)
-    local captured = originalValues[flagName]
+local toggleIcon = Instance.new("ImageLabel", toggleButton)
+toggleIcon.Name = "Icon"
+toggleIcon.Size = UDim2.new(0.7, 0, 0.7, 0)
+toggleIcon.Position = UDim2.new(0.15, 0, 0.15, 0)
+toggleIcon.BackgroundTransparency = 1
+toggleIcon.Image = "rbxthumb://type=Asset&id=118294068232420&w=150&h=150"
+toggleIcon.ScaleType = Enum.ScaleType.Fit
+toggleIcon.ZIndex = toggleButton.ZIndex + 1
 
-    if type(captured) ~= "table" then
-        return nil, nil
-    end
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 360, 0, 280)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.Position = UDim2.new(0.5, 0, 1.5, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(48, 25, 82)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
 
-    local preferred = captured[runtimeName]
+Instance.new("UICorner", mainFrame)
 
-    if preferred and preferred.readable then
-        return preferred, runtimeName
-    end
+local mainStroke = Instance.new("UIStroke", mainFrame)
+mainStroke.Color = Color3.fromRGB(138, 90, 224)
 
-    for candidateName, candidateData in pairs(captured) do
-        if candidateData.readable then
-            return candidateData, candidateName
-        end
-    end
+local mainPattern = Instance.new("ImageLabel", mainFrame)
+mainPattern.Image = "rbxassetid://6803353442"
+mainPattern.BackgroundTransparency = 1
+mainPattern.ImageTransparency = 0.95
+mainPattern.ScaleType = Enum.ScaleType.Tile
+mainPattern.TileSize = UDim2.new(0, 10, 0, 10)
+mainPattern.Size = UDim2.new(1, 0, 1, 0)
+mainPattern.BorderSizePixel = 0
+mainPattern.ZIndex = mainFrame.ZIndex
 
-    return nil, nil
-end
+local titleLabel = Instance.new("TextLabel", mainFrame)
+titleLabel.Text = "AVERAGE FFLAG UI"
+titleLabel.Font = Enum.Font.Cartoon
+titleLabel.TextSize = 22
+titleLabel.BackgroundTransparency = 0.9
+titleLabel.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
+titleLabel.Size = UDim2.new(1, 0, 0, 40)
 
-local function applyEnabledFlags()
-    if busy or loading then
-        return
-    end
+Instance.new("UICorner", titleLabel)
 
-    if typeof(setFlagFunction) ~= "function" then
-        setStatus("Executor does not provide setfflag", "error")
-        return
-    end
+local rawUrlBox = Instance.new("TextBox", mainFrame)
+rawUrlBox.PlaceholderText = "Paste Raw GitHub URL here..."
+rawUrlBox.Text = ""
+rawUrlBox.Size = UDim2.new(0, 320, 0, 35)
+rawUrlBox.Position = UDim2.new(0.05, 0, 0.2, 0)
+rawUrlBox.TextColor3 = Color3.new(1, 1, 1)
+rawUrlBox.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
+rawUrlBox.Font = Enum.Font.Cartoon
+rawUrlBox.TextSize = 14
+rawUrlBox.BackgroundTransparency = 0.8
+rawUrlBox.ClearTextOnFocus = false
+rawUrlBox.MultiLine = false
+rawUrlBox.TextWrapped = false
 
-    local totalEnabled = getEnabledCount()
-
-    if totalEnabled == 0 then
-        setStatus("No flags enabled", "warning", 4)
-        return
-    end
-
-    busy = true
-    applyButton.Text = "APPLYING 0/" .. tostring(totalEnabled)
-    setStatus("Applying enabled flags", "normal")
-
-    task.spawn(function()
-        local sentCount = 0
-        local verifiedCount = 0
-        local unconfirmedCount = 0
-        local failedCount = 0
-        local processedCount = 0
-        local firstError
-
-        for _, item in ipairs(flags) do
-            if item.enabled then
-                processedCount = processedCount + 1
-                applyButton.Text = "APPLYING "
-                    .. tostring(processedCount)
-                    .. "/"
-                    .. tostring(totalEnabled)
-
-                captureOriginalValues(item.name)
-
-                local success, state, errorMessage, runtimeName = writeFlag(item.name, item.value)
-                item.state = state
-                item.error = errorMessage
-
-                if success then
-                    appliedFlags[item.name] = {
-                        value = item.value,
-                        state = state,
-                        runtimeName = runtimeName,
-                    }
-                    item.applied = true
-                    sentCount = sentCount + 1
-
-                    if state == "verified" then
-                        verifiedCount = verifiedCount + 1
-                    else
-                        unconfirmedCount = unconfirmedCount + 1
-                    end
-                else
-                    failedCount = failedCount + 1
-
-                    if not firstError then
-                        firstError = item.name .. "  " .. tostring(errorMessage)
-                    end
-                end
-
-                if processedCount % 40 == 0 then
-                    task.wait()
-                end
-            end
-        end
-
-        busy = false
-        applyButton.Text = "APPLY ENABLED"
-        rebuildNameIndex()
-        renderRows()
-
-        local message = tostring(sentCount) .. " sent"
-
-        if verifiedCount > 0 then
-            message = message .. "  " .. tostring(verifiedCount) .. " verified"
-        end
-
-        if unconfirmedCount > 0 then
-            message = message .. "  " .. tostring(unconfirmedCount) .. " unconfirmed"
-        end
-
-        if failedCount > 0 then
-            message = message .. "  " .. tostring(failedCount) .. " failed"
-
-            if firstError then
-                message = message .. "  " .. firstError
-            end
-        end
-
-        if failedCount > 0 then
-            setStatus(message, "warning")
-        else
-            setStatus(message, "success")
-        end
-    end)
-end
-
-local function restoreOriginalFlags()
-    if busy or loading then
-        return
-    end
-
-    if typeof(setFlagFunction) ~= "function" then
-        setStatus("Executor does not provide setfflag", "error")
-        return
-    end
-
-    local names = {}
-
-    for name in pairs(appliedFlags) do
-        table.insert(names, name)
-    end
-
-    if #names == 0 then
-        setStatus("Nothing from this session is applied", "warning", 4)
-        return
-    end
-
-    table.sort(names)
-    busy = true
-    restoreButton.Text = "RESTORING 0/" .. tostring(#names)
-    setStatus("Restoring captured values", "normal")
-
-    task.spawn(function()
-        local restoredCount = 0
-        local unconfirmedCount = 0
-        local unavailableCount = 0
-        local failedCount = 0
-        local firstError
-
-        for index, name in ipairs(names) do
-            restoreButton.Text = "RESTORING " .. tostring(index) .. "/" .. tostring(#names)
-
-            local appliedData = appliedFlags[name]
-            local preferredRuntimeName = appliedData and appliedData.runtimeName or nil
-            local original, originalRuntimeName = getOriginalValue(name, preferredRuntimeName)
-
-            if original then
-                local success, state, errorMessage = writeFlag(
-                    name,
-                    original.value,
-                    originalRuntimeName or preferredRuntimeName
-                )
-
-                if success then
-                    if state == "unconfirmed" then
-                        unconfirmedCount = unconfirmedCount + 1
-                    else
-                        appliedFlags[name] = nil
-                        originalValues[name] = nil
-                        restoredCount = restoredCount + 1
-                    end
-                else
-                    failedCount = failedCount + 1
-
-                    if not firstError then
-                        firstError = name .. "  " .. tostring(errorMessage)
-                    end
-                end
-            else
-                unavailableCount = unavailableCount + 1
-            end
-
-            if index % 40 == 0 then
-                task.wait()
-            end
-        end
-
-        busy = false
-        restoreButton.Text = "RESTORE ORIGINALS"
-        rebuildNameIndex()
-        renderRows()
-
-        local message = tostring(restoredCount) .. " restored"
-
-        if unconfirmedCount > 0 then
-            message = message .. "  " .. tostring(unconfirmedCount) .. " unconfirmed"
-        end
-
-        if unavailableCount > 0 then
-            message = message .. "  " .. tostring(unavailableCount) .. " no original"
-        end
-
-        if failedCount > 0 then
-            message = message .. "  " .. tostring(failedCount) .. " failed"
-
-            if firstError then
-                message = message .. "  " .. firstError
-            end
-        end
-
-        if unconfirmedCount > 0 or unavailableCount > 0 or failedCount > 0 then
-            setStatus(message, "warning")
-        else
-            setStatus(message, "success")
-        end
-    end)
-end
-
-local function addManualFlag()
-    if busy then
-        return
-    end
-
-    local baseName = "FFlagNewFlag"
-    local name = baseName
-    local number = 1
-
-    while flagIndexByName[name] do
-        number = number + 1
-        name = baseName .. tostring(number)
-    end
-
-    table.insert(flags, {
-        name = name,
-        value = "true",
-        enabled = true,
-        applied = false,
-        state = nil,
-        error = nil,
-    })
-
-    rebuildNameIndex()
-    searchInput.Text = ""
-    rebuildFilter()
-    currentPage = math.max(1, math.ceil(#filteredIndices / PAGE_SIZE))
-    renderRows()
-
-    task.defer(function()
-        for _, row in ipairs(rowPool) do
-            if row.itemIndex and flags[row.itemIndex] and flags[row.itemIndex].name == name then
-                row.nameInput:CaptureFocus()
-                row.nameInput.CursorPosition = #row.nameInput.Text + 1
-                break
-            end
-        end
-    end)
-end
-
-local function clearList()
-    if busy then
-        return
-    end
-
-    table.clear(flags)
-    table.clear(flagIndexByName)
-    table.clear(filteredIndices)
-    currentPage = 1
-    searchInput.Text = ""
-    renderRows()
-    setStatus("Editor list cleared", "normal", 3)
-end
-
-connect(loadButton.MouseButton1Click, loadRaw)
-
-connect(urlInput.FocusLost, function(enterPressed)
-    if enterPressed then
-        loadRaw()
-    end
+pcall(function()
+    rawUrlBox.ShowNativeInput = false
 end)
 
-connect(searchInput:GetPropertyChangedSignal("Text"), function()
-    currentPage = 1
-    renderRows()
-end)
+Instance.new("UICorner", rawUrlBox)
 
-connect(previousButton.MouseButton1Click, function()
-    if currentPage > 1 then
-        currentPage = currentPage - 1
-        renderRows()
-    end
-end)
+local openEditorButton = Instance.new("TextButton", mainFrame)
+openEditorButton.Text = "Open Editor"
+openEditorButton.Size = UDim2.new(0, 155, 0, 35)
+openEditorButton.Position = UDim2.new(0.05, 0, 0.38, 0)
+openEditorButton.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
+openEditorButton.BackgroundTransparency = 0.8
+openEditorButton.TextColor3 = Color3.new(1, 1, 1)
+openEditorButton.Font = Enum.Font.Cartoon
+openEditorButton.TextSize = 18
 
-connect(nextButton.MouseButton1Click, function()
-    local pageCount = math.max(1, math.ceil(#filteredIndices / PAGE_SIZE))
+Instance.new("UICorner", openEditorButton)
 
-    if currentPage < pageCount then
-        currentPage = currentPage + 1
-        renderRows()
-    end
-end)
+local defaultFlagsButton = Instance.new("TextButton", mainFrame)
+defaultFlagsButton.Text = "Default Fflags"
+defaultFlagsButton.Size = UDim2.new(0, 155, 0, 35)
+defaultFlagsButton.Position = UDim2.new(0.51, 0, 0.38, 0)
+defaultFlagsButton.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
+defaultFlagsButton.BackgroundTransparency = 0.8
+defaultFlagsButton.TextColor3 = Color3.new(1, 1, 1)
+defaultFlagsButton.Font = Enum.Font.Cartoon
+defaultFlagsButton.TextSize = 18
 
-connect(selectButton.MouseButton1Click, function()
-    if busy or #flags == 0 then
-        return
-    end
+Instance.new("UICorner", defaultFlagsButton)
 
-    local shouldEnable = getEnabledCount() ~= #flags
+local applyUrlButton = Instance.new("TextButton", mainFrame)
+applyUrlButton.Text = "Apply URL"
+applyUrlButton.Size = UDim2.new(0, 320, 0, 40)
+applyUrlButton.Position = UDim2.new(0.05, 0, 0.58, 0)
+applyUrlButton.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
+applyUrlButton.BackgroundTransparency = 0.8
+applyUrlButton.TextColor3 = Color3.new(1, 1, 1)
+applyUrlButton.Font = Enum.Font.Cartoon
+applyUrlButton.TextSize = 20
 
-    for _, item in ipairs(flags) do
-        item.enabled = shouldEnable
-    end
+Instance.new("UICorner", applyUrlButton)
 
-    renderRows()
-    setStatus(shouldEnable and "All flags enabled" or "All flags disabled", "normal", 3)
-end)
+local rejoinButton = Instance.new("TextButton", mainFrame)
+rejoinButton.Text = "Rejoin"
+rejoinButton.Size = UDim2.new(0, 320, 0, 40)
+rejoinButton.Position = UDim2.new(0.05, 0, 0.78, 0)
+rejoinButton.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
+rejoinButton.BackgroundTransparency = 0.8
+rejoinButton.TextColor3 = Color3.new(1, 1, 1)
+rejoinButton.Font = Enum.Font.Cartoon
+rejoinButton.TextSize = 20
 
-connect(addButton.MouseButton1Click, addManualFlag)
-connect(clearButton.MouseButton1Click, clearList)
-connect(applyButton.MouseButton1Click, applyEnabledFlags)
-connect(restoreButton.MouseButton1Click, restoreOriginalFlags)
+Instance.new("UICorner", rejoinButton)
 
-local guiVisible = true
+local editorFrame = Instance.new("Frame", screenGui)
+editorFrame.Size = UDim2.new(0, 340, 0, 240)
+editorFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+editorFrame.Position = UDim2.new(0.5, 0, 1.5, 0)
+editorFrame.BackgroundColor3 = Color3.fromRGB(48, 25, 82)
+editorFrame.BorderSizePixel = 0
+editorFrame.ZIndex = 10
 
-local function setVisible(visible)
-    guiVisible = visible
-    mainFrame.Visible = visible
-    openButton.Visible = not visible
-end
+Instance.new("UICorner", editorFrame)
 
-connect(closeButton.MouseButton1Click, function()
-    setVisible(false)
-end)
+local editorStroke = Instance.new("UIStroke", editorFrame)
+editorStroke.Color = Color3.fromRGB(138, 90, 224)
 
-connect(openButton.MouseButton1Click, function()
-    setVisible(true)
-end)
+local editorPattern = Instance.new("ImageLabel", editorFrame)
+editorPattern.Image = "rbxassetid://6803353442"
+editorPattern.BackgroundTransparency = 1
+editorPattern.ImageTransparency = 0.95
+editorPattern.ScaleType = Enum.ScaleType.Tile
+editorPattern.TileSize = UDim2.new(0, 10, 0, 10)
+editorPattern.Size = UDim2.new(1, 0, 1, 0)
+editorPattern.BorderSizePixel = 0
+editorPattern.ZIndex = 10
 
-connect(UserInputService.InputBegan, function(input, gameProcessed)
-    local focusedTextBox = UserInputService:GetFocusedTextBox()
-    local controlDown = UserInputService:IsKeyDown(Enum.KeyCode.LeftControl)
-        or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)
+local mobileInputMode = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local jsonScroll
 
-    if input.KeyCode == Enum.KeyCode.Insert then
-        setVisible(not guiVisible)
-        return
-    end
-
-    if input.KeyCode == Enum.KeyCode.Escape and not focusedTextBox and guiVisible then
-        setVisible(false)
-        return
-    end
-
-    if controlDown and input.KeyCode == Enum.KeyCode.F then
-        setVisible(true)
-        searchInput:CaptureFocus()
-        return
-    end
-
-    if controlDown and input.KeyCode == Enum.KeyCode.L then
-        setVisible(true)
-        urlInput:CaptureFocus()
-        return
-    end
-
-    if controlDown and input.KeyCode == Enum.KeyCode.Return then
-        applyEnabledFlags()
-        return
-    end
-
-    if controlDown and input.KeyCode == Enum.KeyCode.R then
-        restoreOriginalFlags()
-        return
-    end
-
-    if gameProcessed or focusedTextBox then
-        return
-    end
-
-    if input.KeyCode == Enum.KeyCode.PageUp and currentPage > 1 then
-        currentPage = currentPage - 1
-        renderRows()
-    elseif input.KeyCode == Enum.KeyCode.PageDown then
-        local pageCount = math.max(1, math.ceil(#filteredIndices / PAGE_SIZE))
-
-        if currentPage < pageCount then
-            currentPage = currentPage + 1
-            renderRows()
-        end
-    end
-end)
-
-local dragging = false
-local dragStart
-local startPosition
-
-connect(header.InputBegan, function(input)
-    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
-        return
-    end
-
-    dragging = true
-    dragStart = input.Position
-    startPosition = mainFrame.Position
-end)
-
-connect(UserInputService.InputChanged, function(input)
-    if not dragging or input.UserInputType ~= Enum.UserInputType.MouseMovement then
-        return
-    end
-
-    local delta = input.Position - dragStart
-
-    mainFrame.Position = UDim2.new(
-        startPosition.X.Scale,
-        startPosition.X.Offset + delta.X,
-        startPosition.Y.Scale,
-        startPosition.Y.Offset + delta.Y
-    )
-end)
-
-connect(UserInputService.InputEnded, function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-renderRows()
-
-if typeof(setFlagFunction) == "function" then
-    if typeof(getFlagFunction) == "function" then
-        setStatus("Ready  write and readback detected", "success")
-    else
-        setStatus("Ready  writes can be sent but may be unconfirmed", "warning")
-    end
+if mobileInputMode then
+    jsonScroll = Instance.new("Frame", editorFrame)
+    jsonScroll.ClipsDescendants = true
 else
-    setStatus("RAW loader ready  setfflag unavailable", "warning")
+    jsonScroll = Instance.new("ScrollingFrame", editorFrame)
+    jsonScroll.CanvasSize = UDim2.new(0, 0, 5, 0)
+    jsonScroll.ScrollBarThickness = 4
 end
 
-Library
-/average_fflag_editor_bw3.lua
+jsonScroll.Size = UDim2.new(0, 310, 0, 140)
+jsonScroll.Position = UDim2.new(0.05, 0, 0.15, 0)
+jsonScroll.BackgroundTransparency = 0.8
+jsonScroll.BackgroundColor3 = Color3.fromRGB(20, 10, 40)
+jsonScroll.BorderSizePixel = 0
+jsonScroll.ZIndex = 11
 
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
+Instance.new("UICorner", jsonScroll)
 
-local player = Players.LocalPlayer
-if not player then
-    return
+local jsonBox = Instance.new("TextBox", jsonScroll)
+jsonBox.PlaceholderText = "Paste JSON here..."
+jsonBox.Text = ""
+jsonBox.Size = UDim2.new(1, 0, 1, 0)
+jsonBox.BackgroundTransparency = 1
+jsonBox.TextColor3 = Color3.new(1, 1, 1)
+jsonBox.Font = Enum.Font.Cartoon
+jsonBox.TextSize = 14
+jsonBox.TextXAlignment = Enum.TextXAlignment.Left
+jsonBox.TextYAlignment = Enum.TextYAlignment.Top
+jsonBox.MultiLine = true
+jsonBox.ClearTextOnFocus = false
+jsonBox.TextWrapped = false
+jsonBox.ZIndex = 12
+
+pcall(function()
+    jsonBox.ShowNativeInput = false
+end)
+
+local closeEditorButton = Instance.new("TextButton", editorFrame)
+closeEditorButton.Text = "Close"
+closeEditorButton.Size = UDim2.new(0, 145, 0, 35)
+closeEditorButton.Position = UDim2.new(0.05, 0, 0.8, 0)
+closeEditorButton.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
+closeEditorButton.TextColor3 = Color3.new(1, 1, 1)
+closeEditorButton.Font = Enum.Font.Cartoon
+closeEditorButton.ZIndex = 11
+
+Instance.new("UICorner", closeEditorButton)
+
+local applyEditorButton = Instance.new("TextButton", editorFrame)
+applyEditorButton.Text = "Apply FFlag"
+applyEditorButton.Size = UDim2.new(0, 145, 0, 35)
+applyEditorButton.Position = UDim2.new(0.51, 0, 0.8, 0)
+applyEditorButton.BackgroundColor3 = Color3.fromRGB(93, 63, 168)
+applyEditorButton.TextColor3 = Color3.new(1, 1, 1)
+applyEditorButton.Font = Enum.Font.Cartoon
+applyEditorButton.ZIndex = 11
+
+Instance.new("UICorner", applyEditorButton)
+
+local function setTextInputFocused(focused)
+    mainFrame.Draggable = not focused
 end
 
-local function getEnvironment()
-    if typeof(getgenv) == "function" then
-        local success, result = pcall(getgenv)
+rawUrlBox.Focused:Connect(function()
+    setTextInputFocused(true)
+end)
 
-        if success and type(result) == "table" then
-            return result
-        end
-    end
+rawUrlBox.FocusLost:Connect(function()
+    setTextInputFocused(false)
+end)
 
-    return _G
-end
+jsonBox.Focused:Connect(function()
+    setTextInputFocused(true)
+end)
 
-local environment = getEnvironment()
+jsonBox.FocusLost:Connect(function()
+    setTextInputFocused(false)
+end)
 
-local function lookup(name)
-    local value = environment[name]
+local mainVisible = true
 
-    if value ~= nil then
-        return value
-    end
+toggleButton.MouseButton1Click:Connect(function()
+    mainVisible = not mainVisible
 
-    return rawget(_G, name)
-end
-
-local function firstFunction(...)
-    for index = 1, select("#", ...) do
-        local value = select(index, ...)
-
-        if typeof(value) == "function" then
-            return value
-        end
-    end
-
-    return nil
-end
-
-local SESSION_KEY = "__AVERAGE_FFLAG_EDITOR_BW_SESSION"
-local LAST_URL_KEY = "__AVERAGE_FFLAG_EDITOR_LAST_URL"
-local LEGACY_SESSION_KEYS = {
-    "__AVERAGE_FFLAG_EDITOR_SESSION",
-    "__AVERAGE_FFLAG_EDITOR_V2_SESSION",
-    SESSION_KEY,
-}
-
-for _, key in ipairs(LEGACY_SESSION_KEYS) do
-    local oldSession = environment[key]
-
-    if type(oldSession) == "table" and typeof(oldSession.destroy) == "function" then
-        pcall(oldSession.destroy)
-    end
-end
-
-local setFlagFunction = firstFunction(lookup("setfflag"))
-local getFlagFunction = firstFunction(lookup("getfflag"))
-local synEnvironment = lookup("syn")
-local fluxusEnvironment = lookup("fluxus")
-
-local requestFunction = firstFunction(
-    lookup("request"),
-    lookup("http_request"),
-    lookup("httprequest"),
-    type(synEnvironment) == "table" and synEnvironment.request or nil,
-    type(fluxusEnvironment) == "table" and fluxusEnvironment.request or nil
-)
-
-local guiParent = player:WaitForChild("PlayerGui")
-local getHiddenUi = lookup("gethui")
-
-if typeof(getHiddenUi) == "function" then
-    local success, result = pcall(getHiddenUi)
-
-    if success and result then
-        guiParent = result
-    end
-end
-
-local connections = {}
-local destroyed = false
-local screenGui
-local session
-
-local function connect(signal, callback)
-    local connection = signal:Connect(callback)
-    table.insert(connections, connection)
-    return connection
-end
-
-local function destroy()
-    if destroyed then
-        return
-    end
-
-    destroyed = true
-
-    for _, connection in ipairs(connections) do
-        pcall(function()
-            connection:Disconnect()
-        end)
-    end
-
-    table.clear(connections)
-
-    if screenGui then
-        pcall(function()
-            screenGui:Destroy()
-        end)
-    end
-
-    if environment[SESSION_KEY] == session then
-        environment[SESSION_KEY] = nil
-    end
-end
-
-session = {
-    destroy = destroy,
-}
-
-environment[SESSION_KEY] = session
-
-for _, name in ipairs({
-    "AverageFFlagEditor",
-    "AverageFFlagEditorV2",
-    "AverageFFlagEditorBW",
-}) do
-    local oldGui = guiParent:FindFirstChild(name)
-
-    if oldGui then
-        oldGui:Destroy()
-    end
-end
-
-local function create(className, properties)
-    local instance = Instance.new(className)
-    local parent = properties.Parent
-
-    for property, value in pairs(properties) do
-        if property ~= "Parent" then
-            instance[property] = value
-        end
-    end
-
-    instance.Parent = parent
-    return instance
-end
-
-local function addCorner(instance, radius)
-    if radius <= 0 then
-        return nil
-    end
-
-    return create("UICorner", {
-        CornerRadius = UDim.new(0, radius),
-        Parent = instance,
-    })
-end
-
-local function addStroke(instance, color, transparency)
-    return create("UIStroke", {
-        Color = color,
-        Transparency = transparency or 0,
-        Thickness = 1,
-        Parent = instance,
-    })
-end
-
-local function addPadding(instance, left, right, top, bottom)
-    return create("UIPadding", {
-        PaddingLeft = UDim.new(0, left or 0),
-        PaddingRight = UDim.new(0, right or 0),
-        PaddingTop = UDim.new(0, top or 0),
-        PaddingBottom = UDim.new(0, bottom or 0),
-        Parent = instance,
-    })
-end
-
-local function trim(value)
-    return (tostring(value or ""):gsub("^%s*(.-)%s*$", "%1"))
-end
-
-local colors = {
-    background = Color3.fromRGB(7, 7, 7),
-    header = Color3.fromRGB(11, 11, 11),
-    panel = Color3.fromRGB(14, 14, 14),
-    field = Color3.fromRGB(19, 19, 19),
-    hover = Color3.fromRGB(26, 26, 26),
-    line = Color3.fromRGB(48, 48, 48),
-    lineBright = Color3.fromRGB(86, 86, 86),
-    text = Color3.fromRGB(242, 242, 242),
-    muted = Color3.fromRGB(154, 154, 154),
-    faint = Color3.fromRGB(92, 92, 92),
-    white = Color3.fromRGB(244, 244, 244),
-    black = Color3.fromRGB(5, 5, 5),
-}
-
-local function makeLabel(parent, text, position, size, options)
-    options = options or {}
-
-    return create("TextLabel", {
-        Position = position,
-        Size = size,
-        BackgroundTransparency = 1,
-        Text = text,
-        TextColor3 = options.color or colors.text,
-        TextSize = options.textSize or 11,
-        Font = options.font or Enum.Font.Gotham,
-        TextXAlignment = options.xAlignment or Enum.TextXAlignment.Left,
-        TextYAlignment = options.yAlignment or Enum.TextYAlignment.Center,
-        TextTruncate = options.truncate or Enum.TextTruncate.None,
-        Parent = parent,
-    })
-end
-
-local function makeButton(parent, text, position, size, primary)
-    local button = create("TextButton", {
-        Position = position,
-        Size = size,
-        BackgroundColor3 = primary and colors.white or colors.panel,
-        BorderSizePixel = 0,
-        Text = text,
-        TextColor3 = primary and colors.black or colors.text,
-        TextSize = 10,
-        Font = Enum.Font.GothamBold,
-        AutoButtonColor = false,
-        Parent = parent,
-    })
-
-    addCorner(button, 2)
-    addStroke(button, primary and colors.white or colors.line, primary and 0 or 0.15)
-
-    return button
-end
-
-local function makeInput(parent, placeholder, position, size, codeFont)
-    local input = create("TextBox", {
-        Position = position,
-        Size = size,
-        BackgroundColor3 = colors.field,
-        BorderSizePixel = 0,
-        Text = "",
-        PlaceholderText = placeholder,
-        PlaceholderColor3 = colors.faint,
-        TextColor3 = colors.text,
-        TextSize = 11,
-        Font = codeFont and Enum.Font.Code or Enum.Font.Gotham,
-        ClearTextOnFocus = false,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = parent,
-    })
-
-    addCorner(input, 2)
-    addStroke(input, colors.line, 0.15)
-    addPadding(input, 8, 8)
-
-    return input
-end
-
-screenGui = create("ScreenGui", {
-    Name = "AverageFFlagEditorBW",
-    ResetOnSpawn = false,
-    IgnoreGuiInset = true,
-    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-    Parent = guiParent,
-})
-
-local openButton = makeButton(
-    screenGui,
-    "FF",
-    UDim2.new(1, -50, 0, 12),
-    UDim2.fromOffset(38, 26),
-    true
-)
-openButton.Visible = false
-
-local mainFrame = create("Frame", {
-    Name = "Window",
-    Size = UDim2.fromOffset(560, 402),
-    Position = UDim2.new(0.5, -280, 0.5, -201),
-    BackgroundColor3 = colors.background,
-    BorderSizePixel = 0,
-    ClipsDescendants = true,
-    Active = true,
-    Parent = screenGui,
-})
-
-addStroke(mainFrame, colors.lineBright, 0.2)
-
-local header = create("Frame", {
-    Name = "Header",
-    Size = UDim2.new(1, 0, 0, 34),
-    BackgroundColor3 = colors.header,
-    BorderSizePixel = 0,
-    Active = true,
-    Parent = mainFrame,
-})
-
-makeLabel(
-    header,
-    "FFLAG EDITOR",
-    UDim2.fromOffset(12, 0),
-    UDim2.new(1, -180, 1, 0),
-    {
-        textSize = 12,
-        font = Enum.Font.GothamBold,
-    }
-)
-
-local engineLabel = makeLabel(
-    header,
-    typeof(setFlagFunction) == "function" and "SETFFLAG READY" or "NO SETFFLAG",
-    UDim2.new(1, -170, 0, 0),
-    UDim2.fromOffset(126, 34),
-    {
-        color = typeof(setFlagFunction) == "function" and colors.muted or colors.faint,
-        textSize = 9,
-        font = Enum.Font.GothamBold,
-        xAlignment = Enum.TextXAlignment.Right,
-    }
-)
-
-local closeButton = create("TextButton", {
-    Size = UDim2.fromOffset(34, 34),
-    Position = UDim2.new(1, -34, 0, 0),
-    BackgroundColor3 = colors.header,
-    BorderSizePixel = 0,
-    Text = "×",
-    TextColor3 = colors.muted,
-    TextSize = 18,
-    Font = Enum.Font.Gotham,
-    AutoButtonColor = false,
-    Parent = header,
-})
-
-local urlInput = makeInput(
-    mainFrame,
-    "GitHub RAW or github.com/.../blob/...",
-    UDim2.fromOffset(12, 44),
-    UDim2.fromOffset(430, 28),
-    true
-)
-urlInput.Text = type(environment[LAST_URL_KEY]) == "string" and environment[LAST_URL_KEY] or ""
-
-local loadButton = makeButton(
-    mainFrame,
-    "LOAD RAW",
-    UDim2.fromOffset(450, 44),
-    UDim2.fromOffset(98, 28),
-    true
-)
-
-local searchInput = makeInput(
-    mainFrame,
-    "Search flags  Ctrl+F",
-    UDim2.fromOffset(12, 80),
-    UDim2.fromOffset(264, 26),
-    false
-)
-
-local countLabel = makeLabel(
-    mainFrame,
-    "0 FLAGS",
-    UDim2.fromOffset(286, 80),
-    UDim2.fromOffset(110, 26),
-    {
-        color = colors.muted,
-        textSize = 9,
-        font = Enum.Font.GothamBold,
-    }
-)
-
-local selectButton = makeButton(
-    mainFrame,
-    "ALL",
-    UDim2.fromOffset(396, 80),
-    UDim2.fromOffset(54, 26),
-    false
-)
-
-local addButton = makeButton(
-    mainFrame,
-    "+",
-    UDim2.fromOffset(456, 80),
-    UDim2.fromOffset(32, 26),
-    false
-)
-addButton.TextSize = 16
-
-local clearButton = makeButton(
-    mainFrame,
-    "CLR",
-    UDim2.fromOffset(494, 80),
-    UDim2.fromOffset(54, 26),
-    false
-)
-clearButton.TextColor3 = colors.muted
-
-makeLabel(mainFrame, "ON", UDim2.fromOffset(16, 108), UDim2.fromOffset(24, 16), {
-    color = colors.faint,
-    textSize = 8,
-    font = Enum.Font.GothamBold,
-    xAlignment = Enum.TextXAlignment.Center,
-})
-
-makeLabel(mainFrame, "FLAG", UDim2.fromOffset(46, 108), UDim2.fromOffset(300, 16), {
-    color = colors.faint,
-    textSize = 8,
-    font = Enum.Font.GothamBold,
-})
-
-makeLabel(mainFrame, "VALUE", UDim2.fromOffset(350, 108), UDim2.fromOffset(158, 16), {
-    color = colors.faint,
-    textSize = 8,
-    font = Enum.Font.GothamBold,
-})
-
-local rowsPanel = create("Frame", {
-    Size = UDim2.fromOffset(536, 198),
-    Position = UDim2.fromOffset(12, 126),
-    BackgroundColor3 = colors.panel,
-    BorderSizePixel = 0,
-    ClipsDescendants = true,
-    Parent = mainFrame,
-})
-
-addStroke(rowsPanel, colors.line, 0.15)
-
-local previousButton = makeButton(
-    mainFrame,
-    "<",
-    UDim2.fromOffset(12, 332),
-    UDim2.fromOffset(26, 22),
-    false
-)
-
-local pageLabel = makeLabel(
-    mainFrame,
-    "1 / 1",
-    UDim2.fromOffset(42, 332),
-    UDim2.fromOffset(62, 22),
-    {
-        color = colors.muted,
-        textSize = 9,
-        font = Enum.Font.GothamMedium,
-        xAlignment = Enum.TextXAlignment.Center,
-    }
-)
-
-local nextButton = makeButton(
-    mainFrame,
-    ">",
-    UDim2.fromOffset(108, 332),
-    UDim2.fromOffset(26, 22),
-    false
-)
-
-local statusLabel = makeLabel(
-    mainFrame,
-    "",
-    UDim2.fromOffset(144, 332),
-    UDim2.fromOffset(404, 22),
-    {
-        color = colors.muted,
-        textSize = 9,
-        xAlignment = Enum.TextXAlignment.Right,
-        truncate = Enum.TextTruncate.AtEnd,
-    }
-)
-
-local applyButton = makeButton(
-    mainFrame,
-    "APPLY ENABLED",
-    UDim2.fromOffset(12, 362),
-    UDim2.fromOffset(264, 28),
-    true
-)
-
-local restoreButton = makeButton(
-    mainFrame,
-    "RESTORE ORIGINALS",
-    UDim2.fromOffset(284, 362),
-    UDim2.fromOffset(264, 28),
-    false
-)
-restoreButton.TextColor3 = colors.muted
-
-local function bindHover(button, normalColor, hoverColor, normalText, hoverText)
-    connect(button.MouseEnter, function()
-        if destroyed then
-            return
-        end
-
-        button.BackgroundColor3 = hoverColor
-
-        if hoverText then
-            button.TextColor3 = hoverText
-        end
-    end)
-
-    connect(button.MouseLeave, function()
-        if destroyed then
-            return
-        end
-
-        button.BackgroundColor3 = normalColor
-
-        if normalText then
-            button.TextColor3 = normalText
-        end
-    end)
-end
-
-bindHover(openButton, colors.white, colors.text, colors.black, colors.black)
-bindHover(loadButton, colors.white, colors.text, colors.black, colors.black)
-bindHover(applyButton, colors.white, colors.text, colors.black, colors.black)
-bindHover(closeButton, colors.header, colors.hover, colors.muted, colors.text)
-bindHover(selectButton, colors.panel, colors.hover, colors.text, colors.text)
-bindHover(addButton, colors.panel, colors.hover, colors.text, colors.text)
-bindHover(clearButton, colors.panel, colors.hover, colors.muted, colors.text)
-bindHover(previousButton, colors.panel, colors.hover, colors.text, colors.text)
-bindHover(nextButton, colors.panel, colors.hover, colors.text, colors.text)
-bindHover(restoreButton, colors.panel, colors.hover, colors.muted, colors.text)
-
-local statusToken = 0
-
-local function setStatus(text, statusType, duration)
-    statusToken = statusToken + 1
-    local token = statusToken
-    local prefix = ""
-
-    if statusType == "success" then
-        prefix = "OK  "
-        statusLabel.TextColor3 = colors.text
-    elseif statusType == "warning" then
-        prefix = "NOTE  "
-        statusLabel.TextColor3 = colors.muted
-    elseif statusType == "error" then
-        prefix = "ERR  "
-        statusLabel.TextColor3 = colors.text
+    if mainVisible then
+        mainFrame:TweenPosition(UDim2.new(0.5, 0, 0.5, 0), "Out", "Quad", 0.5, true)
     else
-        statusLabel.TextColor3 = colors.muted
-    end
-
-    statusLabel.Text = prefix .. tostring(text or "")
-
-    if duration then
-        task.delay(duration, function()
-            if destroyed or token ~= statusToken then
-                return
-            end
-
-            statusLabel.Text = ""
-            statusLabel.TextColor3 = colors.muted
-        end)
-    end
-end
-
-local flags = {}
-local flagIndexByName = {}
-local filteredIndices = {}
-local originalValues = {}
-local appliedFlags = {}
-local currentPage = 1
-local PAGE_SIZE = 7
-local MAX_FLAGS = 5000
-local MAX_BODY_SIZE = 6 * 1024 * 1024
-local loading = false
-local busy = false
-local rowPool = {}
-
-local recognizedPrefixes = {
-    "DFFlag",
-    "FFlag",
-    "DFInt",
-    "FInt",
-    "DFString",
-    "FString",
-    "DFLog",
-    "FLog",
-    "SFFlag",
-    "SFInt",
-    "SFString",
-}
-
-local function isIdentifier(name)
-    return type(name) == "string"
-        and #name > 0
-        and #name <= 220
-        and name:match("^[%a_][%w_]*$") ~= nil
-end
-
-local function isRecognizedFlagName(name)
-    if not isIdentifier(name) then
-        return false
-    end
-
-    for _, prefix in ipairs(recognizedPrefixes) do
-        if name:sub(1, #prefix) == prefix then
-            return true
-        end
-    end
-
-    return false
-end
-
-local function stripFlagPrefix(name)
-    local normalizedName = trim(name)
-
-    for _, prefix in ipairs(recognizedPrefixes) do
-        if normalizedName:sub(1, #prefix) == prefix then
-            local strippedName = normalizedName:sub(#prefix + 1)
-
-            if isIdentifier(strippedName) then
-                return strippedName
-            end
-        end
-    end
-
-    return normalizedName
-end
-
-local function getRuntimeCandidates(name, preferredName)
-    local candidates = {}
-    local used = {}
-
-    local function add(candidate)
-        candidate = trim(candidate)
-
-        if isIdentifier(candidate) and not used[candidate] then
-            used[candidate] = true
-            table.insert(candidates, candidate)
-        end
-    end
-
-    add(preferredName)
-    add(stripFlagPrefix(name))
-    add(name)
-
-    return candidates
-end
-
-local function rebuildNameIndex()
-    table.clear(flagIndexByName)
-
-    for index, item in ipairs(flags) do
-        flagIndexByName[item.name] = index
-        item.applied = appliedFlags[item.name] ~= nil
-    end
-end
-
-local function getEnabledCount()
-    local count = 0
-
-    for _, item in ipairs(flags) do
-        if item.enabled then
-            count = count + 1
-        end
-    end
-
-    return count
-end
-
-local function updateCount()
-    local enabled = getEnabledCount()
-    countLabel.Text = tostring(#flags) .. " FLAGS  " .. tostring(enabled) .. " ON"
-    selectButton.Text = #flags > 0 and enabled == #flags and "NONE" or "ALL"
-end
-
-local function rebuildFilter()
-    table.clear(filteredIndices)
-
-    local query = trim(searchInput.Text):lower()
-
-    for index, item in ipairs(flags) do
-        local match = query == ""
-            or item.name:lower():find(query, 1, true) ~= nil
-            or tostring(item.value):lower():find(query, 1, true) ~= nil
-
-        if match then
-            table.insert(filteredIndices, index)
-        end
-    end
-
-    local pageCount = math.max(1, math.ceil(#filteredIndices / PAGE_SIZE))
-    currentPage = math.clamp(currentPage, 1, pageCount)
-end
-
-local function updateRow(row, item)
-    if not item then
-        row.frame.Visible = false
-        row.itemIndex = nil
-        return
-    end
-
-    row.frame.Visible = true
-    row.nameInput.Text = item.name
-    row.valueInput.Text = tostring(item.value)
-    row.enabledButton.Text = item.enabled and "X" or ""
-    row.enabledButton.BackgroundColor3 = item.enabled and colors.white or colors.field
-    row.enabledButton.TextColor3 = item.enabled and colors.black or colors.text
-
-    if item.state == "failed" then
-        row.nameInput.TextColor3 = colors.muted
-        row.stateLabel.Text = "!"
-    elseif item.state == "verified" then
-        row.nameInput.TextColor3 = colors.text
-        row.stateLabel.Text = "V"
-    elseif item.state == "sent" or item.state == "unconfirmed" then
-        row.nameInput.TextColor3 = colors.text
-        row.stateLabel.Text = "S"
-    else
-        row.nameInput.TextColor3 = item.enabled and colors.text or colors.muted
-        row.stateLabel.Text = ""
-    end
-
-    row.stateLabel.TextColor3 = item.state == "failed" and colors.muted or colors.faint
-end
-
-local function renderRows()
-    rebuildFilter()
-    updateCount()
-
-    local pageCount = math.max(1, math.ceil(#filteredIndices / PAGE_SIZE))
-    pageLabel.Text = tostring(currentPage) .. " / " .. tostring(pageCount)
-
-    local startIndex = ((currentPage - 1) * PAGE_SIZE) + 1
-
-    for rowNumber, row in ipairs(rowPool) do
-        local filteredPosition = startIndex + rowNumber - 1
-        local itemIndex = filteredIndices[filteredPosition]
-        row.itemIndex = itemIndex
-        updateRow(row, itemIndex and flags[itemIndex] or nil)
-    end
-end
-
-local function removeFlagAt(index)
-    local item = flags[index]
-
-    if not item then
-        return
-    end
-
-    table.remove(flags, index)
-    rebuildNameIndex()
-    renderRows()
-end
-
-for rowNumber = 1, PAGE_SIZE do
-    local row = create("Frame", {
-        Size = UDim2.new(1, -8, 0, 26),
-        Position = UDim2.fromOffset(4, 4 + ((rowNumber - 1) * 28)),
-        BackgroundColor3 = colors.field,
-        BorderSizePixel = 0,
-        Parent = rowsPanel,
-    })
-
-    addStroke(row, colors.line, 0.45)
-
-    local enabledButton = create("TextButton", {
-        Size = UDim2.fromOffset(20, 20),
-        Position = UDim2.fromOffset(3, 3),
-        BackgroundColor3 = colors.field,
-        BorderSizePixel = 0,
-        Text = "",
-        TextColor3 = colors.text,
-        TextSize = 9,
-        Font = Enum.Font.GothamBold,
-        AutoButtonColor = false,
-        Parent = row,
-    })
-
-    addStroke(enabledButton, colors.lineBright, 0.1)
-
-    local nameInput = create("TextBox", {
-        Size = UDim2.fromOffset(292, 26),
-        Position = UDim2.fromOffset(28, 0),
-        BackgroundTransparency = 1,
-        Text = "",
-        PlaceholderText = "Flag name",
-        PlaceholderColor3 = colors.faint,
-        TextColor3 = colors.text,
-        TextSize = 11,
-        Font = Enum.Font.Code,
-        ClearTextOnFocus = false,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = row,
-    })
-
-    addPadding(nameInput, 4, 4)
-
-    local valueInput = create("TextBox", {
-        Size = UDim2.fromOffset(154, 20),
-        Position = UDim2.fromOffset(324, 3),
-        BackgroundColor3 = colors.panel,
-        BorderSizePixel = 0,
-        Text = "",
-        PlaceholderText = "Value",
-        PlaceholderColor3 = colors.faint,
-        TextColor3 = colors.text,
-        TextSize = 11,
-        Font = Enum.Font.Code,
-        ClearTextOnFocus = false,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = row,
-    })
-
-    addStroke(valueInput, colors.line, 0.45)
-    addPadding(valueInput, 6, 6)
-
-    local stateLabel = makeLabel(
-        row,
-        "",
-        UDim2.fromOffset(481, 0),
-        UDim2.fromOffset(18, 26),
-        {
-            color = colors.faint,
-            textSize = 8,
-            font = Enum.Font.GothamBold,
-            xAlignment = Enum.TextXAlignment.Center,
-        }
-    )
-
-    local removeButton = create("TextButton", {
-        Size = UDim2.fromOffset(28, 20),
-        Position = UDim2.fromOffset(500, 3),
-        BackgroundColor3 = colors.panel,
-        BorderSizePixel = 0,
-        Text = "×",
-        TextColor3 = colors.faint,
-        TextSize = 15,
-        Font = Enum.Font.Gotham,
-        AutoButtonColor = false,
-        Parent = row,
-    })
-
-    addStroke(removeButton, colors.line, 0.45)
-
-    local rowData = {
-        frame = row,
-        enabledButton = enabledButton,
-        nameInput = nameInput,
-        valueInput = valueInput,
-        stateLabel = stateLabel,
-        removeButton = removeButton,
-        itemIndex = nil,
-    }
-
-    table.insert(rowPool, rowData)
-    bindHover(removeButton, colors.panel, colors.hover, colors.faint, colors.text)
-
-    connect(enabledButton.MouseButton1Click, function()
-        local index = rowData.itemIndex
-        local item = index and flags[index]
-
-        if not item or busy then
-            return
-        end
-
-        item.enabled = not item.enabled
-        renderRows()
-    end)
-
-    connect(removeButton.MouseButton1Click, function()
-        local index = rowData.itemIndex
-
-        if index and not busy then
-            removeFlagAt(index)
-        end
-    end)
-
-    connect(nameInput.FocusLost, function()
-        local index = rowData.itemIndex
-        local item = index and flags[index]
-
-        if not item then
-            return
-        end
-
-        local newName = trim(nameInput.Text)
-
-        if item.applied and newName ~= item.name then
-            nameInput.Text = item.name
-            setStatus("Restore the flag before renaming it", "warning", 4)
-            return
-        end
-
-        if not isIdentifier(newName) then
-            nameInput.Text = item.name
-            setStatus("Invalid flag name", "error", 4)
-            return
-        end
-
-        local duplicateIndex = flagIndexByName[newName]
-
-        if duplicateIndex and duplicateIndex ~= index then
-            nameInput.Text = item.name
-            setStatus("Flag already exists", "warning", 4)
-            return
-        end
-
-        item.name = newName
-        item.state = nil
-        item.error = nil
-        rebuildNameIndex()
-        renderRows()
-    end)
-
-    connect(valueInput.FocusLost, function()
-        local index = rowData.itemIndex
-        local item = index and flags[index]
-
-        if not item then
-            return
-        end
-
-        local newValue = trim(valueInput.Text)
-
-        if newValue == "" then
-            valueInput.Text = tostring(item.value)
-            setStatus("Value cannot be empty", "error", 4)
-            return
-        end
-
-        item.value = newValue
-        item.state = nil
-        item.error = nil
-        renderRows()
-    end)
-end
-
-local function normalizeParsedValue(value)
-    local valueType = type(value)
-
-    if valueType == "boolean" then
-        return value and "true" or "false"
-    end
-
-    if valueType == "number" then
-        return tostring(value)
-    end
-
-    if valueType ~= "string" then
-        return nil
-    end
-
-    local result = trim(value)
-    result = result:gsub("%s+%-%-.*$", "")
-    result = result:gsub("%s+//.*$", "")
-    result = trim(result)
-    result = result:gsub("[,;]+$", "")
-    result = trim(result)
-
-    local wrapped = result:match("^tostring%s*%((.*)%)$")
-
-    if wrapped then
-        result = trim(wrapped)
-    end
-
-    if #result >= 2 then
-        local firstCharacter = result:sub(1, 1)
-        local lastCharacter = result:sub(-1)
-
-        if firstCharacter == "\"" and lastCharacter == "\"" then
-            local success, decoded = pcall(function()
-                return HttpService:JSONDecode(result)
-            end)
-
-            if success and type(decoded) == "string" then
-                result = decoded
-            else
-                result = result:sub(2, -2)
-            end
-        elseif firstCharacter == "'" and lastCharacter == "'" then
-            result = result:sub(2, -2)
-            result = result:gsub("\\'", "'")
-            result = result:gsub("\\\\", "\\")
-        end
-    end
-
-    local lower = result:lower()
-
-    if result == "" or lower == "nil" or lower == "null" then
-        return nil
-    end
-
-    if lower == "true" or lower == "false" then
-        return lower
-    end
-
-    if #result > 1000 then
-        result = result:sub(1, 1000)
-    end
-
-    return result
-end
-
-local function parseFlags(text)
-    local parsed = {}
-    local parsedIndex = {}
-    local jsonMatches = 0
-    local textMatches = 0
-
-    local function addFlag(name, value, source)
-        name = trim(name)
-
-        if #parsed >= MAX_FLAGS or not isRecognizedFlagName(name) then
-            return false
-        end
-
-        local normalizedValue = normalizeParsedValue(value)
-
-        if normalizedValue == nil then
-            return false
-        end
-
-        local existingIndex = parsedIndex[name]
-
-        if existingIndex then
-            parsed[existingIndex].value = normalizedValue
-            return false
-        end
-
-        table.insert(parsed, {
-            name = name,
-            value = normalizedValue,
-            enabled = true,
-            applied = appliedFlags[name] ~= nil,
-            state = nil,
-            error = nil,
-        })
-
-        parsedIndex[name] = #parsed
-
-        if source == "json" then
-            jsonMatches = jsonMatches + 1
-        else
-            textMatches = textMatches + 1
-        end
-
-        return true
-    end
-
-    local cleanedText = text:gsub("^\239\187\191", "")
-    local jsonSuccess, decoded = pcall(function()
-        return HttpService:JSONDecode(cleanedText)
-    end)
-
-    if jsonSuccess and type(decoded) == "table" then
-        local function walk(value, depth)
-            if depth > 12 or #parsed >= MAX_FLAGS or type(value) ~= "table" then
-                return
-            end
-
-            local possibleName = rawget(value, "name")
-                or rawget(value, "flag")
-                or rawget(value, "key")
-            local possibleValue = rawget(value, "value")
-
-            if type(possibleName) == "string" and possibleValue ~= nil then
-                addFlag(possibleName, possibleValue, "json")
-            end
-
-            for key, child in pairs(value) do
-                if type(key) == "string"
-                    and isRecognizedFlagName(key)
-                    and type(child) ~= "table" then
-                    addFlag(key, child, "json")
-                elseif type(child) == "table" then
-                    walk(child, depth + 1)
-                end
-            end
-        end
-
-        walk(decoded, 0)
-    end
-
-    for line in cleanedText:gmatch("[^\r\n]+") do
-        local cleanLine = trim(line)
-        local name
-        local value
-
-        name, value = cleanLine:match("setfflag%s*%(%s*[\"']([%w_]+)[\"']%s*,%s*(.-)%s*%)")
-
-        if not name then
-            name, value = cleanLine:match("%[%s*[\"']([%w_]+)[\"']%s*%]%s*=%s*(.-)%s*[,;]?%s*$")
-        end
-
-        if not name then
-            name, value = cleanLine:match("^%s*[\"']([%w_]+)[\"']%s*:%s*(.-)%s*[,}]?%s*$")
-        end
-
-        if not name then
-            name, value = cleanLine:match("^%s*([%w_]+)%s*[=:]%s*(.-)%s*[,;]?%s*$")
-        end
-
-        if not name then
-            local possibleName, possibleValue = cleanLine:match("^%s*([%w_]+)%s+(.+)%s*$")
-
-            if possibleName and isRecognizedFlagName(possibleName) then
-                name = possibleName
-                value = possibleValue
-            end
-        end
-
-        if name and value then
-            addFlag(name, value, "text")
-        end
-
-        if #parsed >= MAX_FLAGS then
-            break
-        end
-    end
-
-    if #parsed == 0 then
-        for name, value in cleanedText:gmatch("%[%s*[\"']([%w_]+)[\"']%s*%]%s*=%s*([^,%r%n}]+)") do
-            addFlag(name, value, "text")
-
-            if #parsed >= MAX_FLAGS then
-                break
-            end
-        end
-    end
-
-    table.sort(parsed, function(left, right)
-        return left.name:lower() < right.name:lower()
-    end)
-
-    local formatName = "TEXT"
-
-    if jsonMatches > 0 and textMatches > 0 then
-        formatName = "JSON/TEXT"
-    elseif jsonMatches > 0 then
-        formatName = "JSON"
-    end
-
-    return parsed, formatName
-end
-
-local function normalizeGithubUrl(value)
-    local url = trim(value)
-
-    if url == "" then
-        return nil, "Paste a GitHub URL"
-    end
-
-    url = url:gsub("#.*$", "")
-    url = url:gsub("%?.*$", "")
-
-    local owner, repository, path = url:match("^https://github%.com/([^/]+)/([^/]+)/blob/(.+)$")
-
-    if owner and repository and path then
-        return "https://raw.githubusercontent.com/"
-            .. owner
-            .. "/"
-            .. repository
-            .. "/"
-            .. path
-    end
-
-    owner, repository, path = url:match("^https://github%.com/([^/]+)/([^/]+)/raw/(.+)$")
-
-    if owner and repository and path then
-        return "https://raw.githubusercontent.com/"
-            .. owner
-            .. "/"
-            .. repository
-            .. "/"
-            .. path
-    end
-
-    if url:match("^https://raw%.githubusercontent%.com/") then
-        return url
-    end
-
-    if url:match("^https://gist%.githubusercontent%.com/") then
-        return url
-    end
-
-    return nil, "Only GitHub RAW or GitHub blob links are accepted"
-end
-
-local function fetchText(url)
-    local requestError
-
-    if typeof(requestFunction) == "function" then
-        local success, response = pcall(requestFunction, {
-            Url = url,
-            Method = "GET",
-            Headers = {
-                ["Accept"] = "text/plain, application/json, */*",
-                ["User-Agent"] = "Average-FFlag-Editor",
-                ["Cache-Control"] = "no-cache",
-            },
-        })
-
-        if success then
-            if type(response) == "string" and response ~= "" then
-                return true, response
-            end
-
-            if type(response) == "table" then
-                local statusCode = tonumber(response.StatusCode or response.Status or response.status_code)
-                local body = response.Body or response.body or response.ResponseBody
-
-                if type(body) == "string"
-                    and body ~= ""
-                    and (not statusCode or (statusCode >= 200 and statusCode < 300)) then
-                    return true, body
-                end
-
-                requestError = "HTTP " .. tostring(statusCode or "error")
-            end
-        else
-            requestError = tostring(response)
-        end
-    end
-
-    local success, body = pcall(function()
-        return game:HttpGet(url, true)
-    end)
-
-    if success and type(body) == "string" and body ~= "" then
-        return true, body
-    end
-
-    return false, requestError or tostring(body)
-end
-
-local function loadRaw()
-    if loading or busy then
-        return
-    end
-
-    local normalizedUrl, urlError = normalizeGithubUrl(urlInput.Text)
-
-    if not normalizedUrl then
-        setStatus(urlError, "error", 5)
-        return
-    end
-
-    loading = true
-    loadButton.Text = "LOADING"
-    setStatus("Downloading RAW", "normal")
-
-    task.spawn(function()
-        local success, bodyOrError = fetchText(normalizedUrl)
-
-        if destroyed then
-            return
-        end
-
-        if not success then
-            loading = false
-            loadButton.Text = "LOAD RAW"
-            setStatus("Download failed  " .. tostring(bodyOrError), "error")
-            return
-        end
-
-        if #bodyOrError > MAX_BODY_SIZE then
-            loading = false
-            loadButton.Text = "LOAD RAW"
-            setStatus("RAW is larger than 6 MB", "error")
-            return
-        end
-
-        setStatus("Parsing flags", "normal")
-
-        local parsedFlags, formatName = parseFlags(bodyOrError)
-
-        loading = false
-        loadButton.Text = "LOAD RAW"
-
-        if #parsedFlags == 0 then
-            setStatus("No supported flags found", "warning")
-            return
-        end
-
-        flags = parsedFlags
-        currentPage = 1
-        searchInput.Text = ""
-        urlInput.Text = normalizedUrl
-        environment[LAST_URL_KEY] = normalizedUrl
-
-        rebuildNameIndex()
-        renderRows()
-
-        local suffix = #parsedFlags >= MAX_FLAGS and "  LIMIT" or ""
-        setStatus(tostring(#parsedFlags) .. " flags loaded  " .. formatName .. suffix, "success")
-    end)
-end
-
-local function canonicalValue(value)
-    local text = trim(value)
-    local lower = text:lower()
-
-    if lower == "true" or lower == "false" then
-        return "boolean", lower
-    end
-
-    local number = tonumber(text)
-
-    if number ~= nil then
-        return "number", number
-    end
-
-    return "string", text
-end
-
-local function valuesEquivalent(left, right)
-    local leftType, leftValue = canonicalValue(left)
-    local rightType, rightValue = canonicalValue(right)
-
-    if leftType == rightType then
-        return leftValue == rightValue
-    end
-
-    return tostring(leftValue) == tostring(rightValue)
-end
-
-local function readFlagValue(flagName)
-    if typeof(getFlagFunction) == "function" then
-        local success, value = pcall(getFlagFunction, flagName)
-
-        if success and value ~= nil then
-            return true, value, "executor"
-        end
-    end
-
-    if flagName:find("Flag", 1, true) ~= nil then
-        local success, value = pcall(function()
-            return settings():GetFFlag(flagName)
-        end)
-
-        if success and value ~= nil then
-            return true, value, "settings"
-        end
-    end
-
-    local success, value = pcall(function()
-        return settings():GetFVariable(flagName)
-    end)
-
-    if success and value ~= nil then
-        return true, value, "settings"
-    end
-
-    return false, nil, nil
-end
-
-local function writeFlag(flagName, value, preferredRuntimeName)
-    if typeof(setFlagFunction) ~= "function" then
-        return false, "failed", "setfflag is unavailable", nil
-    end
-
-    local errors = {}
-
-    for _, runtimeName in ipairs(getRuntimeCandidates(flagName, preferredRuntimeName)) do
-        local success, result = pcall(setFlagFunction, runtimeName, tostring(value))
-
-        if success then
-            local readable, currentValue = readFlagValue(runtimeName)
-
-            if readable then
-                if valuesEquivalent(currentValue, value) then
-                    return true, "verified", nil, runtimeName
-                end
-
-                return true, "unconfirmed", "readback did not match", runtimeName
-            end
-
-            return true, "sent", nil, runtimeName
-        end
-
-        table.insert(errors, runtimeName .. "  " .. tostring(result))
-    end
-
-    return false, "failed", table.concat(errors, " | "), nil
-end
-
-local function captureOriginalValues(flagName)
-    if originalValues[flagName] ~= nil then
-        return
-    end
-
-    local captured = {}
-
-    for _, runtimeName in ipairs(getRuntimeCandidates(flagName)) do
-        local readable, value = readFlagValue(runtimeName)
-
-        captured[runtimeName] = {
-            readable = readable,
-            value = value,
-        }
-    end
-
-    originalValues[flagName] = captured
-end
-
-local function getOriginalValue(flagName, runtimeName)
-    local captured = originalValues[flagName]
-
-    if type(captured) ~= "table" then
-        return nil, nil
-    end
-
-    local preferred = captured[runtimeName]
-
-    if preferred and preferred.readable then
-        return preferred, runtimeName
-    end
-
-    for candidateName, candidateData in pairs(captured) do
-        if candidateData.readable then
-            return candidateData, candidateName
-        end
-    end
-
-    return nil, nil
-end
-
-local function applyEnabledFlags()
-    if busy or loading then
-        return
-    end
-
-    if typeof(setFlagFunction) ~= "function" then
-        setStatus("Executor does not provide setfflag", "error")
-        return
-    end
-
-    local totalEnabled = getEnabledCount()
-
-    if totalEnabled == 0 then
-        setStatus("No flags enabled", "warning", 4)
-        return
-    end
-
-    busy = true
-    applyButton.Text = "APPLYING 0/" .. tostring(totalEnabled)
-    setStatus("Applying enabled flags", "normal")
-
-    task.spawn(function()
-        local sentCount = 0
-        local verifiedCount = 0
-        local unconfirmedCount = 0
-        local failedCount = 0
-        local processedCount = 0
-        local firstError
-
-        for _, item in ipairs(flags) do
-            if item.enabled then
-                processedCount = processedCount + 1
-                applyButton.Text = "APPLYING "
-                    .. tostring(processedCount)
-                    .. "/"
-                    .. tostring(totalEnabled)
-
-                captureOriginalValues(item.name)
-
-                local success, state, errorMessage, runtimeName = writeFlag(item.name, item.value)
-                item.state = state
-                item.error = errorMessage
-
-                if success then
-                    appliedFlags[item.name] = {
-                        value = item.value,
-                        state = state,
-                        runtimeName = runtimeName,
-                    }
-                    item.applied = true
-                    sentCount = sentCount + 1
-
-                    if state == "verified" then
-                        verifiedCount = verifiedCount + 1
-                    else
-                        unconfirmedCount = unconfirmedCount + 1
-                    end
-                else
-                    failedCount = failedCount + 1
-
-                    if not firstError then
-                        firstError = item.name .. "  " .. tostring(errorMessage)
-                    end
-                end
-
-                if processedCount % 40 == 0 then
-                    task.wait()
-                end
-            end
-        end
-
-        busy = false
-        applyButton.Text = "APPLY ENABLED"
-        rebuildNameIndex()
-        renderRows()
-
-        local message = tostring(sentCount) .. " sent"
-
-        if verifiedCount > 0 then
-            message = message .. "  " .. tostring(verifiedCount) .. " verified"
-        end
-
-        if unconfirmedCount > 0 then
-            message = message .. "  " .. tostring(unconfirmedCount) .. " unconfirmed"
-        end
-
-        if failedCount > 0 then
-            message = message .. "  " .. tostring(failedCount) .. " failed"
-
-            if firstError then
-                message = message .. "  " .. firstError
-            end
-        end
-
-        if failedCount > 0 then
-            setStatus(message, "warning")
-        else
-            setStatus(message, "success")
-        end
-    end)
-end
-
-local function restoreOriginalFlags()
-    if busy or loading then
-        return
-    end
-
-    if typeof(setFlagFunction) ~= "function" then
-        setStatus("Executor does not provide setfflag", "error")
-        return
-    end
-
-    local names = {}
-
-    for name in pairs(appliedFlags) do
-        table.insert(names, name)
-    end
-
-    if #names == 0 then
-        setStatus("Nothing from this session is applied", "warning", 4)
-        return
-    end
-
-    table.sort(names)
-    busy = true
-    restoreButton.Text = "RESTORING 0/" .. tostring(#names)
-    setStatus("Restoring captured values", "normal")
-
-    task.spawn(function()
-        local restoredCount = 0
-        local unconfirmedCount = 0
-        local unavailableCount = 0
-        local failedCount = 0
-        local firstError
-
-        for index, name in ipairs(names) do
-            restoreButton.Text = "RESTORING " .. tostring(index) .. "/" .. tostring(#names)
-
-            local appliedData = appliedFlags[name]
-            local preferredRuntimeName = appliedData and appliedData.runtimeName or nil
-            local original, originalRuntimeName = getOriginalValue(name, preferredRuntimeName)
-
-            if original then
-                local success, state, errorMessage = writeFlag(
-                    name,
-                    original.value,
-                    originalRuntimeName or preferredRuntimeName
-                )
-
-                if success then
-                    if state == "unconfirmed" then
-                        unconfirmedCount = unconfirmedCount + 1
-                    else
-                        appliedFlags[name] = nil
-                        originalValues[name] = nil
-                        restoredCount = restoredCount + 1
-                    end
-                else
-                    failedCount = failedCount + 1
-
-                    if not firstError then
-                        firstError = name .. "  " .. tostring(errorMessage)
-                    end
-                end
-            else
-                unavailableCount = unavailableCount + 1
-            end
-
-            if index % 40 == 0 then
-                task.wait()
-            end
-        end
-
-        busy = false
-        restoreButton.Text = "RESTORE ORIGINALS"
-        rebuildNameIndex()
-        renderRows()
-
-        local message = tostring(restoredCount) .. " restored"
-
-        if unconfirmedCount > 0 then
-            message = message .. "  " .. tostring(unconfirmedCount) .. " unconfirmed"
-        end
-
-        if unavailableCount > 0 then
-            message = message .. "  " .. tostring(unavailableCount) .. " no original"
-        end
-
-        if failedCount > 0 then
-            message = message .. "  " .. tostring(failedCount) .. " failed"
-
-            if firstError then
-                message = message .. "  " .. firstError
-            end
-        end
-
-        if unconfirmedCount > 0 or unavailableCount > 0 or failedCount > 0 then
-            setStatus(message, "warning")
-        else
-            setStatus(message, "success")
-        end
-    end)
-end
-
-local function addManualFlag()
-    if busy then
-        return
-    end
-
-    local baseName = "FFlagNewFlag"
-    local name = baseName
-    local number = 1
-
-    while flagIndexByName[name] do
-        number = number + 1
-        name = baseName .. tostring(number)
-    end
-
-    table.insert(flags, {
-        name = name,
-        value = "true",
-        enabled = true,
-        applied = false,
-        state = nil,
-        error = nil,
-    })
-
-    rebuildNameIndex()
-    searchInput.Text = ""
-    rebuildFilter()
-    currentPage = math.max(1, math.ceil(#filteredIndices / PAGE_SIZE))
-    renderRows()
-
-    task.defer(function()
-        for _, row in ipairs(rowPool) do
-            if row.itemIndex and flags[row.itemIndex] and flags[row.itemIndex].name == name then
-                row.nameInput:CaptureFocus()
-                row.nameInput.CursorPosition = #row.nameInput.Text + 1
-                break
-            end
-        end
-    end)
-end
-
-local function clearList()
-    if busy then
-        return
-    end
-
-    table.clear(flags)
-    table.clear(flagIndexByName)
-    table.clear(filteredIndices)
-    currentPage = 1
-    searchInput.Text = ""
-    renderRows()
-    setStatus("Editor list cleared", "normal", 3)
-end
-
-connect(loadButton.MouseButton1Click, loadRaw)
-
-connect(urlInput.FocusLost, function(enterPressed)
-    if enterPressed then
-        loadRaw()
+        mainFrame:TweenPosition(UDim2.new(0.5, 0, 1.5, 0), "Out", "Quad", 0.5, true)
+        editorFrame:TweenPosition(UDim2.new(0.5, 0, 1.5, 0), "In", "Quad", 0.5, true)
     end
 end)
 
-connect(searchInput:GetPropertyChangedSignal("Text"), function()
-    currentPage = 1
-    renderRows()
+openEditorButton.MouseButton1Click:Connect(function()
+    editorFrame:TweenPosition(UDim2.new(0.5, 0, 0.5, 0), "Out", "Back", 0.5, true)
 end)
 
-connect(previousButton.MouseButton1Click, function()
-    if currentPage > 1 then
-        currentPage = currentPage - 1
-        renderRows()
-    end
+closeEditorButton.MouseButton1Click:Connect(function()
+    editorFrame:TweenPosition(UDim2.new(0.5, 0, 1.5, 0), "In", "Back", 0.5, true)
 end)
 
-connect(nextButton.MouseButton1Click, function()
-    local pageCount = math.max(1, math.ceil(#filteredIndices / PAGE_SIZE))
-
-    if currentPage < pageCount then
-        currentPage = currentPage + 1
-        renderRows()
-    end
+defaultFlagsButton.MouseButton1Click:Connect(function()
+    applyJson(DEFAULT_FFLAGS)
 end)
 
-connect(selectButton.MouseButton1Click, function()
-    if busy or #flags == 0 then
+applyEditorButton.MouseButton1Click:Connect(function()
+    jsonBox:ReleaseFocus()
+    applyJson(jsonBox.Text)
+end)
+
+applyUrlButton.MouseButton1Click:Connect(function()
+    rawUrlBox:ReleaseFocus()
+    notify("Fetching", "Downloading...")
+
+    local downloaded, content = pcall(function()
+        return game:HttpGet(rawUrlBox.Text)
+    end)
+
+    if not downloaded then
+        notify("Error", "Failed URL")
         return
     end
 
-    local shouldEnable = getEnabledCount() ~= #flags
-
-    for _, item in ipairs(flags) do
-        item.enabled = shouldEnable
-    end
-
-    renderRows()
-    setStatus(shouldEnable and "All flags enabled" or "All flags disabled", "normal", 3)
+    applyJson(content)
 end)
 
-connect(addButton.MouseButton1Click, addManualFlag)
-connect(clearButton.MouseButton1Click, clearList)
-connect(applyButton.MouseButton1Click, applyEnabledFlags)
-connect(restoreButton.MouseButton1Click, restoreOriginalFlags)
-
-local guiVisible = true
-
-local function setVisible(visible)
-    guiVisible = visible
-    mainFrame.Visible = visible
-    openButton.Visible = not visible
-end
-
-connect(closeButton.MouseButton1Click, function()
-    setVisible(false)
+rejoinButton.MouseButton1Click:Connect(function()
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Players.LocalPlayer)
 end)
 
-connect(openButton.MouseButton1Click, function()
-    setVisible(true)
-end)
-
-connect(UserInputService.InputBegan, function(input, gameProcessed)
-    local focusedTextBox = UserInputService:GetFocusedTextBox()
-    local controlDown = UserInputService:IsKeyDown(Enum.KeyCode.LeftControl)
-        or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)
-
-    if input.KeyCode == Enum.KeyCode.Insert then
-        setVisible(not guiVisible)
-        return
-    end
-
-    if input.KeyCode == Enum.KeyCode.Escape and not focusedTextBox and guiVisible then
-        setVisible(false)
-        return
-    end
-
-    if controlDown and input.KeyCode == Enum.KeyCode.F then
-        setVisible(true)
-        searchInput:CaptureFocus()
-        return
-    end
-
-    if controlDown and input.KeyCode == Enum.KeyCode.L then
-        setVisible(true)
-        urlInput:CaptureFocus()
-        return
-    end
-
-    if controlDown and input.KeyCode == Enum.KeyCode.Return then
-        applyEnabledFlags()
-        return
-    end
-
-    if controlDown and input.KeyCode == Enum.KeyCode.R then
-        restoreOriginalFlags()
-        return
-    end
-
-    if gameProcessed or focusedTextBox then
-        return
-    end
-
-    if input.KeyCode == Enum.KeyCode.PageUp and currentPage > 1 then
-        currentPage = currentPage - 1
-        renderRows()
-    elseif input.KeyCode == Enum.KeyCode.PageDown then
-        local pageCount = math.max(1, math.ceil(#filteredIndices / PAGE_SIZE))
-
-        if currentPage < pageCount then
-            currentPage = currentPage + 1
-            renderRows()
-        end
-    end
-end)
-
-local dragging = false
-local dragStart
-local startPosition
-
-connect(header.InputBegan, function(input)
-    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
-        return
-    end
-
-    dragging = true
-    dragStart = input.Position
-    startPosition = mainFrame.Position
-end)
-
-connect(UserInputService.InputChanged, function(input)
-    if not dragging or input.UserInputType ~= Enum.UserInputType.MouseMovement then
-        return
-    end
-
-    local delta = input.Position - dragStart
-
-    mainFrame.Position = UDim2.new(
-        startPosition.X.Scale,
-        startPosition.X.Offset + delta.X,
-        startPosition.Y.Scale,
-        startPosition.Y.Offset + delta.Y
-    )
-end)
-
-connect(UserInputService.InputEnded, function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-renderRows()
-
-if typeof(setFlagFunction) == "function" then
-    if typeof(getFlagFunction) == "function" then
-        setStatus("Ready  write and readback detected", "success")
-    else
-        setStatus("Ready  writes can be sent but may be unconfirmed", "warning")
-    end
-else
-    setStatus("RAW loader ready  setfflag unavailable", "warning")
-end
-
+mainFrame:TweenPosition(UDim2.new(0.5, 0, 0.5, 0), "Out", "Quad", 0.8, true)
