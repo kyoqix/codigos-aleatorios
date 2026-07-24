@@ -1,0 +1,5783 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Lighting = game:GetService("Lighting")
+local SoundService = game:GetService("SoundService")
+local Stats = game:GetService("Stats")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local terrain = Workspace:FindFirstChildOfClass("Terrain")
+
+local oldFflagGui = playerGui:FindFirstChild("AVERAGE_FFLAG_UI")
+if oldFflagGui then
+	oldFflagGui:Destroy()
+end
+
+local oldStretchGui = playerGui:FindFirstChild("StretchController")
+if oldStretchGui then
+	oldStretchGui:Destroy()
+end
+
+RunService:UnbindFromRenderStep("StretchControllerRender")
+RunService:UnbindFromRenderStep("TesteHubScreenStretch")
+
+local existing = playerGui:FindFirstChild("TesteHub")
+if existing then
+	existing:Destroy()
+end
+
+local interface = {
+	presets = {
+	Violet = {
+		background = Color3.fromRGB(50, 35, 73),
+		surface = Color3.fromRGB(94, 69, 133),
+		surfaceAlt = Color3.fromRGB(112, 83, 157),
+		elevated = Color3.fromRGB(130, 99, 181),
+		hover = Color3.fromRGB(148, 116, 201),
+		selection = Color3.fromRGB(165, 132, 220),
+		input = Color3.fromRGB(69, 50, 99),
+		active = Color3.fromRGB(229, 205, 255),
+		accent = Color3.fromRGB(229, 205, 255),
+		accentSoft = Color3.fromRGB(176, 143, 228),
+		accentBright = Color3.fromRGB(255, 253, 255),
+		text = Color3.fromRGB(255, 255, 255),
+		subtext = Color3.fromRGB(252, 247, 255),
+		dim = Color3.fromRGB(236, 224, 248),
+		border = Color3.fromRGB(199, 171, 231),
+		borderActive = Color3.fromRGB(244, 229, 255),
+		gradientMid = Color3.fromRGB(102, 75, 145),
+		gradientHigh = Color3.fromRGB(139, 105, 190),
+		notificationStart = Color3.fromRGB(92, 62, 136),
+		notificationMid = Color3.fromRGB(67, 45, 100),
+		notificationEnd = Color3.fromRGB(52, 35, 79)
+	},
+	Indigo = {
+		background = Color3.fromRGB(28, 31, 67),
+		surface = Color3.fromRGB(55, 62, 125),
+		surfaceAlt = Color3.fromRGB(67, 76, 151),
+		elevated = Color3.fromRGB(80, 91, 176),
+		hover = Color3.fromRGB(94, 108, 198),
+		selection = Color3.fromRGB(111, 126, 220),
+		input = Color3.fromRGB(39, 44, 91),
+		active = Color3.fromRGB(198, 211, 255),
+		accent = Color3.fromRGB(176, 194, 255),
+		accentSoft = Color3.fromRGB(119, 139, 219),
+		accentBright = Color3.fromRGB(241, 245, 255),
+		text = Color3.fromRGB(255, 255, 255),
+		subtext = Color3.fromRGB(239, 243, 255),
+		dim = Color3.fromRGB(211, 218, 246),
+		border = Color3.fromRGB(155, 169, 225),
+		borderActive = Color3.fromRGB(220, 228, 255),
+		gradientMid = Color3.fromRGB(63, 72, 144),
+		gradientHigh = Color3.fromRGB(90, 103, 190),
+		notificationStart = Color3.fromRGB(70, 82, 164),
+		notificationMid = Color3.fromRGB(52, 61, 126),
+		notificationEnd = Color3.fromRGB(38, 44, 92)
+	},
+	Rose = {
+		background = Color3.fromRGB(70, 29, 57),
+		surface = Color3.fromRGB(126, 55, 104),
+		surfaceAlt = Color3.fromRGB(151, 68, 124),
+		elevated = Color3.fromRGB(176, 82, 145),
+		hover = Color3.fromRGB(198, 98, 166),
+		selection = Color3.fromRGB(219, 117, 184),
+		input = Color3.fromRGB(94, 39, 77),
+		active = Color3.fromRGB(255, 216, 240),
+		accent = Color3.fromRGB(255, 190, 228),
+		accentSoft = Color3.fromRGB(221, 137, 190),
+		accentBright = Color3.fromRGB(255, 247, 252),
+		text = Color3.fromRGB(255, 255, 255),
+		subtext = Color3.fromRGB(255, 241, 249),
+		dim = Color3.fromRGB(240, 210, 229),
+		border = Color3.fromRGB(229, 162, 203),
+		borderActive = Color3.fromRGB(255, 223, 242),
+		gradientMid = Color3.fromRGB(137, 59, 112),
+		gradientHigh = Color3.fromRGB(185, 85, 151),
+		notificationStart = Color3.fromRGB(154, 67, 126),
+		notificationMid = Color3.fromRGB(116, 48, 94),
+		notificationEnd = Color3.fromRGB(82, 33, 67)
+	},
+	Cyan = {
+		background = Color3.fromRGB(24, 54, 64),
+		surface = Color3.fromRGB(45, 98, 112),
+		surfaceAlt = Color3.fromRGB(54, 119, 135),
+		elevated = Color3.fromRGB(65, 140, 157),
+		hover = Color3.fromRGB(78, 161, 179),
+		selection = Color3.fromRGB(94, 183, 200),
+		input = Color3.fromRGB(33, 73, 85),
+		active = Color3.fromRGB(205, 250, 255),
+		accent = Color3.fromRGB(179, 242, 250),
+		accentSoft = Color3.fromRGB(111, 190, 202),
+		accentBright = Color3.fromRGB(244, 254, 255),
+		text = Color3.fromRGB(255, 255, 255),
+		subtext = Color3.fromRGB(238, 252, 255),
+		dim = Color3.fromRGB(202, 231, 236),
+		border = Color3.fromRGB(145, 207, 216),
+		borderActive = Color3.fromRGB(220, 248, 252),
+		gradientMid = Color3.fromRGB(50, 113, 128),
+		gradientHigh = Color3.fromRGB(72, 151, 168),
+		notificationStart = Color3.fromRGB(55, 130, 145),
+		notificationMid = Color3.fromRGB(40, 94, 108),
+		notificationEnd = Color3.fromRGB(29, 68, 79)
+	}
+	},
+	themeName = "Violet",
+	animationScale = 1,
+	scale = 1,
+	borderIntensity = 1,
+	themeBindings = setmetatable({}, {__mode = "k"}),
+	gradientBindings = setmetatable({}, {__mode = "k"}),
+	strokeBaseTransparency = setmetatable({}, {__mode = "k"}),
+	configFile = "K27E_INTERFACE_CONFIG.json",
+	saveVersion = 0,
+	controls = {}
+}
+
+local theme = {}
+for key, value in pairs(interface.presets.Violet) do
+	theme[key] = value
+end
+
+
+function interface.getThemeKey(color)
+	if typeof(color) ~= "Color3" then
+		return nil
+	end
+
+	for key, value in pairs(theme) do
+		if typeof(value) == "Color3" and value == color then
+			return key
+		end
+	end
+
+	return nil
+end
+
+function interface.bindThemeProperty(object, property, value)
+	local key = interface.getThemeKey(value)
+	if not key then
+		return
+	end
+
+	interface.themeBindings[object] = interface.themeBindings[object] or {}
+	interface.themeBindings[object][property] = key
+end
+
+function interface.bindGradient(object, sequence)
+	local entries = {}
+
+	for _, keypoint in ipairs(sequence.Keypoints) do
+		table.insert(entries, {
+			time = keypoint.Time,
+			key = interface.getThemeKey(keypoint.Value),
+			color = keypoint.Value
+		})
+	end
+
+	interface.gradientBindings[object] = entries
+end
+
+function interface.renderStrokeTransparency(value)
+	return 1 - ((1 - math.clamp(value, 0, 1)) * interface.borderIntensity)
+end
+
+local function create(className, properties, parent)
+	local object = Instance.new(className)
+
+	for property, value in pairs(properties or {}) do
+		object[property] = value
+		interface.bindThemeProperty(object, property, value)
+	end
+
+	if className == "UIGradient" and properties and properties.Color then
+		interface.bindGradient(object, properties.Color)
+	end
+
+	object.Parent = parent
+	return object
+end
+
+local function playTween(object, properties, duration, style, direction)
+	local tweenProperties = {}
+
+	for property, value in pairs(properties) do
+		interface.bindThemeProperty(object, property, value)
+
+		if object:IsA("UIStroke") and property == "Transparency" then
+			interface.strokeBaseTransparency[object] = value
+			tweenProperties[property] = interface.renderStrokeTransparency(value)
+		else
+			tweenProperties[property] = value
+		end
+	end
+
+	local animation = TweenService:Create(
+		object,
+		TweenInfo.new(
+			math.max(0.01, (duration or 0.2) * interface.animationScale),
+			style or Enum.EasingStyle.Quint,
+			direction or Enum.EasingDirection.Out
+		),
+		tweenProperties
+	)
+
+	animation:Play()
+	return animation
+end
+
+local function addCorner(object, radius)
+	return create("UICorner", {
+		CornerRadius = UDim.new(0, radius or 6)
+	}, object)
+end
+
+local function addStroke(object, color, thickness, transparency)
+	local baseTransparency = transparency or 0
+	local stroke = create("UIStroke", {
+		Color = color or theme.border,
+		Thickness = thickness or 1.2,
+		Transparency = interface.renderStrokeTransparency(baseTransparency)
+	}, object)
+
+	interface.strokeBaseTransparency[stroke] = baseTransparency
+	return stroke
+end
+
+function interface.applyTheme(name)
+	local preset = interface.presets[name]
+	if not preset then
+		return false
+	end
+
+	interface.themeName = name
+
+	for key, value in pairs(preset) do
+		theme[key] = value
+	end
+
+	for object, bindings in pairs(interface.themeBindings) do
+		if object and object.Parent then
+			for property, key in pairs(bindings) do
+				pcall(function()
+					object[property] = theme[key]
+				end)
+			end
+		end
+	end
+
+	for gradient, entries in pairs(interface.gradientBindings) do
+		if gradient and gradient.Parent then
+			local keypoints = {}
+
+			for _, entry in ipairs(entries) do
+				table.insert(keypoints, ColorSequenceKeypoint.new(
+					entry.time,
+					entry.key and theme[entry.key] or entry.color
+				))
+			end
+
+			gradient.Color = ColorSequence.new(keypoints)
+		end
+	end
+
+	return true
+end
+
+function interface.setBorderIntensity(value)
+	interface.borderIntensity = math.clamp(value, 0, 1)
+
+	for stroke, baseTransparency in pairs(interface.strokeBaseTransparency) do
+		if stroke and stroke.Parent then
+			stroke.Transparency = interface.renderStrokeTransparency(baseTransparency)
+		end
+	end
+end
+
+
+local executorEnvironment = _G
+
+if typeof(getgenv) == "function" then
+	local success, result = pcall(getgenv)
+
+	if success and type(result) == "table" then
+		executorEnvironment = result
+	end
+end
+
+local function tryClipboardFunction(callback, owner)
+	if typeof(callback) ~= "function" then
+		return false, nil
+	end
+
+	local success, result = pcall(callback)
+
+	if (not success or type(result) ~= "string") and owner then
+		success, result = pcall(callback, owner)
+	end
+
+	if success and type(result) == "string" and result ~= "" then
+		return true, result
+	end
+
+	return false, nil
+end
+
+local function readClipboard()
+	local environments = {
+		executorEnvironment,
+		_G
+	}
+
+	local directNames = {
+		"getclipboard",
+		"readclipboard",
+		"get_clipboard",
+		"read_clipboard"
+	}
+
+	for _, environment in ipairs(environments) do
+		if type(environment) == "table" then
+			for _, functionName in ipairs(directNames) do
+				local success, result = tryClipboardFunction(rawget(environment, functionName))
+
+				if success then
+					return true, result
+				end
+			end
+		end
+	end
+
+	local clipboardTables = {
+		type(executorEnvironment) == "table" and rawget(executorEnvironment, "Clipboard") or nil,
+		type(executorEnvironment) == "table" and rawget(executorEnvironment, "clipboard") or nil,
+		type(_G) == "table" and rawget(_G, "Clipboard") or nil,
+		type(_G) == "table" and rawget(_G, "clipboard") or nil
+	}
+
+	local methodNames = {
+		"get",
+		"read",
+		"Get",
+		"Read",
+		"getText",
+		"GetText",
+		"gettext"
+	}
+
+	for _, clipboardTable in ipairs(clipboardTables) do
+		if type(clipboardTable) == "table" then
+			for _, methodName in ipairs(methodNames) do
+				local success, result = tryClipboardFunction(
+					rawget(clipboardTable, methodName),
+					clipboardTable
+				)
+
+				if success then
+					return true, result
+				end
+			end
+		end
+	end
+
+	return false, nil
+end
+
+local function trimText(value)
+	return (tostring(value or ""):gsub("^%s*(.-)%s*$", "%1"))
+end
+
+local RAW_HISTORY_FILE = "K27E_RAW_HISTORY.json"
+local RAW_HISTORY_LIMIT = 15
+
+local function getExecutorFunction(names)
+	local environments = {
+		executorEnvironment,
+		_G
+	}
+
+	for _, environment in ipairs(environments) do
+		if type(environment) == "table" then
+			for _, name in ipairs(names) do
+				local callback = rawget(environment, name)
+
+				if typeof(callback) == "function" then
+					return callback
+				end
+			end
+		end
+	end
+
+	return nil
+end
+
+local readFile = getExecutorFunction({"readfile", "read_file"})
+local writeFile = getExecutorFunction({"writefile", "write_file"})
+local isFile = getExecutorFunction({"isfile", "is_file"})
+local rawHistory = {}
+local rawHistoryFileSupported = readFile ~= nil and writeFile ~= nil
+
+function interface.saveInterfaceConfig()
+	local data = {
+		theme = interface.themeName,
+		scale = interface.scale,
+		animationSpeed = 1 / interface.animationScale,
+		borderIntensity = interface.borderIntensity
+	}
+
+	pcall(function()
+		rawset(executorEnvironment, "K27EInterfaceConfig", data)
+	end)
+
+	if not writeFile then
+		return false
+	end
+
+	local encodedSuccessfully, encoded = pcall(function()
+		return HttpService:JSONEncode(data)
+	end)
+
+	if not encodedSuccessfully then
+		return false
+	end
+
+	return pcall(writeFile, interface.configFile, encoded)
+end
+
+function interface.queueInterfaceConfigSave()
+	interface.saveVersion += 1
+	local version = interface.saveVersion
+
+	task.delay(0.35, function()
+		if version == interface.saveVersion then
+			interface.saveInterfaceConfig()
+		end
+	end)
+end
+
+function interface.loadInterfaceConfig()
+	local loaded
+
+	if readFile then
+		local canRead = true
+
+		if isFile then
+			local checked, exists = pcall(isFile, interface.configFile)
+			canRead = checked and exists == true
+		end
+
+		if canRead then
+			local readSuccessfully, encoded = pcall(readFile, interface.configFile)
+
+			if readSuccessfully and type(encoded) == "string" then
+				local decodedSuccessfully, decoded = pcall(function()
+					return HttpService:JSONDecode(encoded)
+				end)
+
+				if decodedSuccessfully and type(decoded) == "table" then
+					loaded = decoded
+				end
+			end
+		end
+	end
+
+	if type(loaded) ~= "table" then
+		local sessionConfig = rawget(executorEnvironment, "K27EInterfaceConfig")
+
+		if type(sessionConfig) == "table" then
+			loaded = sessionConfig
+		end
+	end
+
+	if type(loaded) ~= "table" then
+		return
+	end
+
+	if type(loaded.theme) == "string" and interface.presets[loaded.theme] then
+		interface.applyTheme(loaded.theme)
+	end
+
+	interface.scale = math.clamp(tonumber(loaded.scale) or 1, 0.75, 1.15)
+	local animationSpeed = math.clamp(tonumber(loaded.animationSpeed) or 1, 0.5, 2)
+	interface.animationScale = 1 / animationSpeed
+	interface.borderIntensity = math.clamp(tonumber(loaded.borderIntensity) or 1, 0.15, 1)
+end
+
+interface.loadInterfaceConfig()
+
+local MUSIC_FOLDER = "K27E/MusicPlayer"
+local MUSIC_LIMIT = 15
+local MUSIC_EXTENSIONS = {
+	mp3 = true,
+	ogg = true,
+	wav = true,
+	m4a = true
+}
+
+local makeFolder = getExecutorFunction({"makefolder", "make_folder"})
+local isFolder = getExecutorFunction({"isfolder", "is_folder"})
+local listFiles = getExecutorFunction({"listfiles", "list_files"})
+local customAsset = getExecutorFunction({"getcustomasset", "getsynasset", "get_custom_asset"})
+
+local function normalizeRawHistory(entries)
+	local normalized = {}
+	local seen = {}
+
+	if type(entries) ~= "table" then
+		return normalized
+	end
+
+	for _, entry in ipairs(entries) do
+		local url
+		local timestamp
+
+		if type(entry) == "string" then
+			url = trimText(entry)
+		elseif type(entry) == "table" then
+			url = trimText(entry.url)
+			timestamp = tonumber(entry.timestamp)
+		end
+
+		if url and url ~= "" then
+			local key = string.lower(url)
+
+			if not seen[key] then
+				seen[key] = true
+				table.insert(normalized, {
+					url = url,
+					timestamp = timestamp or os.time()
+				})
+
+				if #normalized >= RAW_HISTORY_LIMIT then
+					break
+				end
+			end
+		end
+	end
+
+	return normalized
+end
+
+local function saveRawHistory()
+	rawset(executorEnvironment, "K27ERawHistory", rawHistory)
+
+	if not writeFile then
+		return false
+	end
+
+	local encodedSuccessfully, encoded = pcall(function()
+		return HttpService:JSONEncode(rawHistory)
+	end)
+
+	if not encodedSuccessfully then
+		return false
+	end
+
+	return pcall(writeFile, RAW_HISTORY_FILE, encoded)
+end
+
+local function loadRawHistory()
+	local loaded
+
+	if readFile then
+		local canRead = true
+
+		if isFile then
+			local checked, exists = pcall(isFile, RAW_HISTORY_FILE)
+			canRead = checked and exists == true
+		end
+
+		if canRead then
+			local readSuccessfully, encoded = pcall(readFile, RAW_HISTORY_FILE)
+
+			if readSuccessfully and type(encoded) == "string" then
+				local decodedSuccessfully, decoded = pcall(function()
+					return HttpService:JSONDecode(encoded)
+				end)
+
+				if decodedSuccessfully then
+					loaded = decoded
+				end
+			end
+		end
+	end
+
+	if type(loaded) ~= "table" then
+		local sessionHistory = rawget(executorEnvironment, "K27ERawHistory")
+
+		if type(sessionHistory) == "table" then
+			loaded = sessionHistory
+		end
+	end
+
+	rawHistory = normalizeRawHistory(loaded)
+	rawset(executorEnvironment, "K27ERawHistory", rawHistory)
+end
+
+local function addRawHistory(url)
+	url = trimText(url)
+
+	if url == "" then
+		return false
+	end
+
+	for index = #rawHistory, 1, -1 do
+		if string.lower(rawHistory[index].url) == string.lower(url) then
+			table.remove(rawHistory, index)
+		end
+	end
+
+	table.insert(rawHistory, 1, {
+		url = url,
+		timestamp = os.time()
+	})
+
+	while #rawHistory > RAW_HISTORY_LIMIT do
+		table.remove(rawHistory)
+	end
+
+	saveRawHistory()
+	return true
+end
+
+local function clearRawHistory()
+	rawHistory = {}
+	saveRawHistory()
+end
+
+loadRawHistory()
+
+local DEFAULT_FFLAGS = [[{
+  "FFlagEnableAccessibilitySettingsEffectsInExperienceChat": "True",
+  "FFlagEnableToastLiteRender": "true",
+  "FFlagRenderEnableGlobalInstancingD3D11": "true",
+  "DFFlagTeleportPreloadingMetrics5": "true",
+  "FFlagReduceTextureMemory": "True",
+  "DFFlagRakNetDetectNetUnreachable": "True",
+  "DFIntReplicationBatchSize": "32",
+  "DFFlagQueueDataPingFromSendData": "True",
+  "DFIntRenderThrottlePercentage": "100",
+  "DFFlagFixUIRenderModifierUnibarBug": "true",
+  "DFIntMemoryCleanupDelay": "1000",
+  "DFIntTexturePoolSize": "512",
+  "FFlagPushFrameTimeToHarmony": "true",
+  "FFlagRenderFixULGlassRefraction": "true",
+  "DFFlagPerformanceControlEnableMemoryProbing3": "true",
+  "DFIntMobileTextureQuality": "2",
+  "FFlagQuaternionPoseCorrection": "true",
+  "DFFlagRakNetEnablePoll": "true",
+  "FFlagLuauCodegen": "true",
+  "DFFlagUnifyLegacyJointGeometry": "true",
+  "FFlagScreenGuiDoNotRenderUnderViewportFrame": "true",
+  "FFlagFixGraphicsQuality": "True",
+  "DFFlagRenderMeshBulkUploadEnable": "true",
+  "FFlagUserShowGuiHideToggles": "true",
+  "DFFlagRenderEmitterOcclusionCulling": "true",
+  "DFFlagFrameTimeJitterMedians2": "True",
+  "DFFlagSimDCDEnableWithoutRollout2": "true",
+  "FFlagEnableQuickGameLaunch": "true",
+  "FFlagDebugDisableTelemetryEventIngest": "True",
+  "FFlagVoiceBetaBadge": "False",
+  "FFlagUserUpdateInputConnections": "true",
+  "FFlagEnablePreferredTextSizeGuiService": "true",
+  "FFlagEnableTerrainOptimizations": "True",
+  "DFFlagEnableSoundPreloading": "true",
+  "DFFlagDebugSkipMeshVoxelizer": "true",
+  "FFlagHandleAltEnterFullscreenManually": "false",
+  "DFFlagDisableDPIScale": "true",
+  "DFFlagMatrixFromEulerPerf": "true",
+  "FFlagCommitToGraphicsQualityFix": "True",
+  "FIntRenderShadowIntensity": "0",
+  "FStringWhitelistVerifiedUserId": "1909432994",
+  "FFlagEnableInGameMenuV3": "True",
+  "DFFlagEnableTexturePreloading": "true",
+  "FFlagFixInputLag": "True",
+  "DFFlagRenderDeferredExecutionEnabled": "True",
+  "FFlagImproveShiftLockTransition": "true",
+  "FFlagEnablePingOptimizations": "True",
+  "DFFlagRenderFastClusterOcclusionCulling": "false",
+  "FFlagMouseGetPartOptimization": "true",
+  "DFFlagSimSkipVoxelCDECMerge": "true",
+  "DFFlagAllowRegistrationOfAnimationClipInCoreScripts": "true",
+  "DFFlagSkipSomeProperties": "true",
+  "DFFlagDebugRenderForceTechnologyVoxel": "True",
+  "FFlagUISUseLastFrameTimeInUpdateInputSignal": "true",
+  "FFlagRenderDeferShaderLoading": "true",
+  "DFFlagTeleportClientAssetPreloadingEnabledIXP2": "true",
+  "DFFlagDebugPauseVoxelizer": "true",
+  "DFIntTextureQualityOverride": "1",
+  "DFFlagOnlyDecrementCompletenessIfReplicating": "true",
+  "FFlagDisablePostFx": "true",
+  "FFlagOptimizeMobileRendering": "True",
+  "FFlagOptimizeAvatarLoading": "True",
+  "DFIntTextureCompressionLevel": "1",
+  "DFFlagOptimizePartsInPart": "true",
+  "FFlagTaskSchedulerLimitTargetFpsTo2402": "false",
+  "DFIntTaskSchedulerTargetFps": "29383",
+  "DFFlagRakNetDecoupleRecvAndUpdateLoopShutdown": "true",
+  "FIntFullscreenTitleBarTriggerDelayMillis": "3600000",
+  "FFlagRenderFallbackToPBR": "False",
+  "FFlagLoginPageOptimizedPngs": "True",
+  "DFFlagRenderModelClusterOcclusionCulling": "false",
+  "DFIntRaknetBandwidthPingSendEveryXSeconds": "1",
+  "DFIntRakNetResendRttMultiple": "1",
+  "FFlagEnableMenuControlsABTest": "False",
+  "DFFlagOptimizeClusterCacheAlloc": "true",
+  "DFFlagRenderFastFlag3": "True",
+  "FFlagProcessEventQueueOnInput": "true",
+  "FFlagRenderLegacyShadowsQualityRefactor": "true",
+  "FFlagDisableChatWindowRerenderOnPlayerJoinAndLeave": "true",
+  "DFFlagTeleportClientAssetPreloadingEnabledIXP": "true",
+  "DFFlagClampIncomingReplicationLag": "true",
+  "FIntRomarkStartWithGraphicQualityLevel": "1",
+  "FFlagDebugDisableTelemetryV2Stat": "True",
+  "FFlagEnableInGameMenuModernization": "false",
+  "DFFlagGameNetFixReplicationSkipBug": "true",
+  "FFlagRenderEnableGlobalInstancing7": "true",
+  "FFlagRenderCBRefactor2": "true",
+  "FFlagRenderFixGrassPrepass": "true",
+  "FFlagEnableAggressivePacketResends": "True",
+  "FFlagUserBetterInertialScrolling": "true",
+  "DFFlagSkipReadDiskCacheRedirects": "true",
+  "FFlagEnableInGameMenuControls": "True",
+  "FFlagDebugDisableTelemetryV2Counter": "True",
+  "FIntDebugForceMSAASamples": "1",
+  "DFIntTextureCompositorActiveJobs": "0",
+  "FFlagRenderDebugCheckThreading2": "true",
+  "FFlagFastGPULightCulling3": "true",
+  "FFlagBillboardGuiOnlyLayoutWhenRenderable": "true",
+  "FLogNetwork": "7",
+  "DFIntGcStepSize": "200",
+  "DFIntMaxTextureSize": "2048",
+  "FFlagSimEnableDCD16": "true",
+  "FFlagGraphicsEnableD3D10Compute": "True",
+  "FFlagOptimizeSoundPlayback": "True",
+  "FFlagUseStableSort": "True",
+  "DFFlagDisableFastLogTelemetry": "true",
+  "DFFlagEnablePreloadAvatarAssets": "True",
+  "DFFlagRenderOptimizeWallClock2": "True",
+  "FFlagHttpAssetCacheInitOnly6": "True",
+  "FStringInGameMenuModernizationStickyBarForcedUserIds": "1909432994",
+  "FFlagAnimationClipMemCacheEnabled": "true",
+  "FFlagEarlyUpdateBoundings": "true",
+  "DFIntCullingFrustumPadding": "5",
+  "FFlagNewLightAttenuation": "True",
+  "FFlagRenderTestEnableDistanceCulling": "true",
+  "FFlagRenderSkipReadingShaderData": "true",
+  "FFlagOptimizeUIBlur": "True",
+  "DFFlagSimSolverOptimizeLDLCache": "True",
+  "FFlagFixIGMTabTransitions": "True",
+  "FFlagLuaMenuPerfImprovements": "true",
+  "FFlagEnableRbxPostAPI": "True",
+  "DFFlagCorrectCachePolicySkipRedirectCache": "true",
+  "DFFlagSkipSomePropertiesSkip": "true",
+  "DFIntPerformanceControlTextureQualityBestUtility": "-1",
+  "DFFlagDebugPerfMode": "true",
+  "DFFlagSampleAndRefreshRakPing": "true",
+  "FFlagDontCreatePingJob": "True",
+  "FFlagEnableTerrainFoliageOptimizations": "True",
+  "FFlagDebugDisableTelemetryEphemeralStat": "True",
+  "FIntDebugTextureManagerSkipMips": "10",
+  "FFlagRenderFixSurfaceLight": "true",
+  "DFIntInputBufferSize": "3",
+  "DFIntSoundChannels": "24",
+  "DFIntRenderQueueSize": "64",
+  "FFlagEnableV3MenuABTest3": "False",
+  "FFlagDebugDisableParticleEmitterCulling": "False",
+  "FFlagUserCameraInputDt": "true",
+  "FFlagEnableAccessibilitySettingsAPIV2": "True",
+  "FFlagEnableRateLimiting": "True",
+  "FFlagGpuGeometryManager7": "True",
+  "FFlagEnablePreferredTextSizeStyleFixesInAppShell3": "True",
+  "FFlagTopBarUseNewBadge": "false",
+  "FFlagUserCameraInputRefactor3": "true",
+  "DFIntShaderCacheSize": "256",
+  "DFIntCodecMaxIncomingPackets": "100",
+  "FFlagEnableNewInput": "True",
+  "DFIntGuiInsetMaxCorrection": "10",
+  "FFlagEnableAccessibilitySettingsInExperienceMenu2": "True",
+  "FFlagTweenOptimizations": "True",
+  "DFFlagUpdateClientChannelA": "true",
+  "DFFlagAllowPropertyDefaultSkip": "true",
+  "DFIntPathfindingThreads": "2",
+  "DFFlagEnableMeshPreloading2": "true",
+  "FFlagEnableAccessibilitySettingsEffectsInCoreScripts2": "True",
+  "FFlagRenderNoLowFrmBloom": "true",
+  "FStringVoiceBetaBadgeLearnMoreLink": "null",
+  "DFFlagJointIrregularityOptimization": "true",
+  "FFlagRenderFixBrokenAvatarShadow": "true",
+  "FFlagRenderDX11FixWaitForGpu": "true",
+  "FFlagBatchAssetApi": "True",
+  "FFlagBetaBadgeLearnMoreLinkFormview": "False",
+  "FFlagFixMemoryLeaks": "True",
+  "FFlagAssetImportRemoveAnimationSuffix": "true",
+  "DFIntMaxParticleEmitters": "100",
+  "FFlagAssetPreloadingIXP": "true",
+  "FIntActivatedCountTimerMSMouse": "1",
+  "FFlagOptimizeNetworkReplication": "True",
+  "FFlagEnableInGameMenuSongbirdABTest": "false",
+  "FFlagDebugDisableTelemetryV2Event": "True",
+  "FFlagEnableFasterPathfinding": "True",
+  "FFlagUseNewMemoryManager": "True",
+  "FFlagEnableBetterCulling": "True",
+  "FFlagDebugSkyGray": "true",
+  "FFlagLuauSolverV2": "true",
+  "DFFlagMergeFakeInputEvents3": "true",
+  "FFlagEnableFasterRendering": "True",
+  "FFlagFixTransparentSurfacesZOrder": "True",
+  "FFlagRenderGpuTextureCompressor": "true",
+  "FFlagLuaAppExitModalDoNotShow": "True",
+  "FFlagLuaAppLegacyInputSettingRefactor": "true",
+  "FFlagPreloadTextureItemsOption4": "true",
+  "FFlagRenderDynamicResolutionScale12": "true",
+  "FFlagMessageBusCallOptimization": "True",
+  "FFlagDebugDisableTelemetryPoint": "True",
+  "DFFlagSimOptimizeSetSize": "true",
+  "DFFlagTeleportClientAssetPreloadingEnabled9": "true",
+  "FFlagReduceShaderCompilation": "True",
+  "FFlagSimOptimizeGeometryChangedAssemblies": "true",
+  "FFlagGcInParallelWithRenderPrepare3": "true",
+  "FFlagRenderUnifiedLighting16": "true",
+  "FFlagRenderFixFog": "True",
+  "DFIntAvatarCacheSize": "50",
+  "DFFlagTeleportClientAssetPreloadingDoingExperiment2": "true",
+  "FIntTerrainArraySliceSize": "0",
+  "FFlagGameBasicSettingsFramerateCap5": "false",
+  "DFIntDebugFRMQualityLevelOverride": "1",
+  "DFFlagTextureQualityOverrideEnabled": "true",
+  "FFlagControlBetaBadgeWithGuac": "false",
+  "DFFlagSimDcdRecompUseClosedVoxel4": "true",
+  "FIntActivatedCountTimerMSKeyboard": "1",
+  "FFlagHighlightOutlinesOnMobile": "true",
+  "FFlagDebugGraphicsPreferD3D11": "true",
+  "FFlagDebugDisableTelemetryEphemeralCounter": "True",
+  "FFlagFutureIsBrightPhase3": "False",
+  "FFlagEnableGCStepSize": "True",
+  "DFFlagRakNetDisconnectNotification": "True",
+  "FFlagEnablePreferredTextSizeScale": "true",
+  "DFIntMaxProcessPacketsStepsPerCyclic": "5000",
+  "FFlagGraphicsFixMsaaInGuiScene": "true",
+  "FFlagAdServiceEnabled": "false"
+}]]
+
+local function stripFlagPrefix(flagName)
+	local prefixes = {
+		"DFFlag",
+		"FFlag",
+		"DFInt",
+		"FInt",
+		"DFString",
+		"FString"
+	}
+
+	for _, prefix in ipairs(prefixes) do
+		if flagName:sub(1, #prefix) == prefix then
+			return flagName:sub(#prefix + 1)
+		end
+	end
+
+	return flagName
+end
+
+local function getFlagSetter()
+	local environments = {
+		executorEnvironment,
+		_G
+	}
+
+	for _, environment in ipairs(environments) do
+		if type(environment) == "table" then
+			local setter = rawget(environment, "setfflag")
+
+			if typeof(setter) == "function" then
+				return setter
+			end
+		end
+	end
+
+	local success, setter = pcall(function()
+		return setfflag
+	end)
+
+	if success and typeof(setter) == "function" then
+		return setter
+	end
+
+	return nil
+end
+
+local function applyFlagJson(jsonText)
+	local decodedSuccessfully, decoded = pcall(function()
+		return HttpService:JSONDecode(jsonText)
+	end)
+
+	if not decodedSuccessfully or type(decoded) ~= "table" then
+		return false, 0, 0, "Invalid JSON format"
+	end
+
+	if #decoded == 1 and type(decoded[1]) == "table" then
+		decoded = decoded[1]
+	end
+
+	local setter = getFlagSetter()
+	if not setter then
+		return false, 0, 0, "setfflag is unavailable"
+	end
+
+	local appliedCount = 0
+	local failedCount = 0
+
+	for flagName, value in pairs(decoded) do
+		local success = pcall(
+			setter,
+			stripFlagPrefix(tostring(flagName)),
+			tostring(value)
+		)
+
+		if success then
+			appliedCount += 1
+		else
+			failedCount += 1
+		end
+	end
+
+	if appliedCount == 0 then
+		return false, appliedCount, failedCount, "No FFlags were applied"
+	end
+
+	return true, appliedCount, failedCount, nil
+end
+
+
+local destroyClasses = {
+	ParticleEmitter = true,
+	Trail = true,
+	Beam = true,
+	Smoke = true,
+	Fire = true,
+	Sparkles = true,
+	Explosion = true,
+	Highlight = true,
+	ForceField = true,
+	Atmosphere = true,
+	Clouds = true,
+	Sky = true,
+	SelectionBox = true,
+	SelectionSphere = true,
+	SurfaceSelection = true,
+	BoxHandleAdornment = true,
+	SphereHandleAdornment = true,
+	CylinderHandleAdornment = true,
+	ConeHandleAdornment = true,
+	LineHandleAdornment = true,
+	WireframeHandleAdornment = true,
+	Handles = true,
+	ArcHandles = true
+}
+
+local noRender = {
+	enabled = false,
+	vfx = true,
+	sfx = true,
+	lighting = true,
+	parts = true,
+	terrain = true,
+	textures = false,
+	meshLod = false,
+	simplifyTransparency = false,
+	mapLite = false,
+	protectGameplay = true,
+	destructiveVfx = false,
+	preset = "Custom",
+	descendantConnection = nil,
+	propertyLocks = {},
+	originalProperties = {},
+	processedInstances = setmetatable({}, {__mode = "k"}),
+	generation = 0,
+	processed = 0,
+	destroyed = 0,
+	modified = 0,
+	scanning = false,
+	pendingScan = false,
+	ui = {},
+	adaptive = {
+		enabled = false,
+		connection = nil,
+		frames = 0,
+		elapsed = 0,
+		fps = 60,
+		tier = "",
+		lastSwitch = 0
+	},
+	protectedKeywords = {
+		"ball", "parry", "target", "indicator", "warning", "arrow",
+		"arena", "floor", "ground", "platform", "spawn", "court",
+		"goal", "humanoid", "character", "player", "rootpart"
+	},
+	decorKeywords = {
+		"decor", "decoration", "foliage", "tree", "grass", "bush",
+		"leaf", "leaves", "banner", "flag", "prop", "plant",
+		"rock", "cloud", "background", "scenery", "statue", "lamp"
+	}
+}
+
+local screenStretch = {
+	enabled = false,
+	minimum = 0.1,
+	maximum = 3,
+	default = 1,
+	factor = 1,
+	bindName = "TesteHubScreenStretch",
+	lastCamera = nil,
+	lastBaseCFrame = nil,
+	lastAppliedCFrame = nil
+}
+
+local musicPlayer = {
+	folder = MUSIC_FOLDER,
+	limit = MUSIC_LIMIT,
+	tracks = {},
+	currentIndex = 0,
+	currentSound = nil,
+	endedConnection = nil,
+	volume = 0.65,
+	looped = false,
+	paused = false,
+	onStateChanged = nil,
+	onTrackStarted = nil,
+	uiConnection = nil
+}
+
+local function restoreCameraTransform()
+	local camera = screenStretch.lastCamera
+	local baseCFrame = screenStretch.lastBaseCFrame
+
+	if camera and baseCFrame then
+		pcall(function()
+			if not screenStretch.lastAppliedCFrame or camera.CFrame == screenStretch.lastAppliedCFrame then
+				camera.CFrame = baseCFrame
+			end
+		end)
+	end
+
+	screenStretch.lastCamera = nil
+	screenStretch.lastBaseCFrame = nil
+	screenStretch.lastAppliedCFrame = nil
+end
+
+local function applyScreenStretch()
+	if not screenStretch.enabled or math.abs(screenStretch.factor - 1) < 0.0001 then
+		return
+	end
+
+	local camera = Workspace.CurrentCamera
+	if not camera then
+		return
+	end
+
+	pcall(function()
+		if screenStretch.lastCamera == camera
+			and screenStretch.lastAppliedCFrame
+			and screenStretch.lastBaseCFrame
+			and camera.CFrame == screenStretch.lastAppliedCFrame then
+			camera.CFrame = screenStretch.lastBaseCFrame
+		end
+
+		local baseCFrame = camera.CFrame
+		local transform = CFrame.new(
+			0, 0, 0,
+			1, 0, 0,
+			0, screenStretch.factor, 0,
+			0, 0, 1
+		)
+		local appliedCFrame = baseCFrame * transform
+
+		screenStretch.lastCamera = camera
+		screenStretch.lastBaseCFrame = baseCFrame
+		screenStretch.lastAppliedCFrame = appliedCFrame
+		camera.CFrame = appliedCFrame
+	end)
+end
+
+local function setScreenStretchEnabled(state)
+	state = state == true
+
+	if screenStretch.enabled == state then
+		return
+	end
+
+	screenStretch.enabled = state
+	RunService:UnbindFromRenderStep(screenStretch.bindName)
+
+	if state then
+		RunService:BindToRenderStep(
+			screenStretch.bindName,
+			Enum.RenderPriority.Camera.Value + 1,
+			applyScreenStretch
+		)
+	else
+		restoreCameraTransform()
+	end
+end
+
+local function setScreenStretchFactor(value)
+	screenStretch.factor = math.clamp(
+		tonumber(value) or screenStretch.default,
+		screenStretch.minimum,
+		screenStretch.maximum
+	)
+
+	if math.abs(screenStretch.factor - 1) < 0.0001 then
+		restoreCameraTransform()
+	end
+end
+
+local function getPropertyBucket(container, instance, createBucket)
+	local bucket = container[instance]
+
+	if not bucket and createBucket then
+		bucket = {}
+		container[instance] = bucket
+	end
+
+	return bucket
+end
+
+local function safeDestroy(instance)
+	if not instance or not instance.Parent then
+		return false
+	end
+
+	local success = pcall(function()
+		instance:Destroy()
+	end)
+
+	if success then
+		noRender.destroyed += 1
+	end
+
+	return success
+end
+
+local function lockProperty(instance, property, value)
+	if not instance then
+		return
+	end
+
+	local locks = getPropertyBucket(noRender.propertyLocks, instance, true)
+	if locks[property] then
+		return
+	end
+
+	local success, originalValue = pcall(function()
+		return instance[property]
+	end)
+
+	if not success then
+		return
+	end
+
+	local originals = getPropertyBucket(noRender.originalProperties, instance, true)
+	originals[property] = originalValue
+
+	pcall(function()
+		instance[property] = value
+	end)
+
+	locks[property] = instance:GetPropertyChangedSignal(property):Connect(function()
+		if not noRender.enabled then
+			return
+		end
+
+		pcall(function()
+			if instance[property] ~= value then
+				instance[property] = value
+			end
+		end)
+	end)
+end
+
+local function unlockProperty(instance, property, restore)
+	local locks = getPropertyBucket(noRender.propertyLocks, instance, false)
+	local originals = getPropertyBucket(noRender.originalProperties, instance, false)
+
+	if locks and locks[property] then
+		locks[property]:Disconnect()
+		locks[property] = nil
+	end
+
+	if restore and originals and originals[property] ~= nil then
+		pcall(function()
+			instance[property] = originals[property]
+		end)
+	end
+
+	if originals then
+		originals[property] = nil
+	end
+
+	if locks and next(locks) == nil then
+		noRender.propertyLocks[instance] = nil
+	end
+
+	if originals and next(originals) == nil then
+		noRender.originalProperties[instance] = nil
+	end
+end
+
+local function unlockAllProperties(restore)
+	for instance, locks in pairs(noRender.propertyLocks) do
+		for property, connection in pairs(locks) do
+			connection:Disconnect()
+			locks[property] = nil
+		end
+		noRender.propertyLocks[instance] = nil
+	end
+
+	if restore then
+		for instance, originals in pairs(noRender.originalProperties) do
+			for property, value in pairs(originals) do
+				pcall(function()
+					instance[property] = value
+				end)
+				originals[property] = nil
+			end
+			noRender.originalProperties[instance] = nil
+		end
+	else
+		table.clear(noRender.originalProperties)
+	end
+end
+
+function noRender.setPropertyOnce(instance, property, value)
+	if not instance or not instance.Parent then
+		return false
+	end
+
+	local originals = getPropertyBucket(noRender.originalProperties, instance, true)
+
+	if originals[property] == nil then
+		local success, originalValue = pcall(function()
+			return instance[property]
+		end)
+
+		if not success then
+			return false
+		end
+
+		originals[property] = originalValue
+	end
+
+	local success = pcall(function()
+		instance[property] = value
+	end)
+
+	if success then
+		noRender.modified += 1
+	end
+
+	return success
+end
+
+function noRender.hasKeyword(value, keywords)
+	local name = string.lower(tostring(value or ""))
+
+	for _, keyword in ipairs(keywords) do
+		if string.find(name, keyword, 1, true) then
+			return true
+		end
+	end
+
+	return false
+end
+
+function noRender.isCharacterDescendant(instance)
+	local current = instance
+
+	while current and current ~= game do
+		if current:IsA("Model") and current:FindFirstChildOfClass("Humanoid") then
+			return true
+		end
+
+		current = current.Parent
+	end
+
+	return false
+end
+
+function noRender.isProtected(instance)
+	if not noRender.protectGameplay or not instance then
+		return false
+	end
+
+	if noRender.isCharacterDescendant(instance) then
+		return true
+	end
+
+	local camera = Workspace.CurrentCamera
+	if camera and (instance == camera or instance:IsDescendantOf(camera)) then
+		return true
+	end
+
+	local current = instance
+	local depth = 0
+
+	while current and current ~= game and depth < 7 do
+		if noRender.hasKeyword(current.Name, noRender.protectedKeywords) then
+			return true
+		end
+
+		current = current.Parent
+		depth += 1
+	end
+
+	if instance:IsA("BasePart") and not instance.Anchored then
+		return true
+	end
+
+	return false
+end
+
+function noRender.isDecoration(part)
+	if not part or not part:IsA("BasePart") or not part.Anchored then
+		return false
+	end
+
+	if noRender.hasKeyword(part.Name, noRender.decorKeywords) then
+		return true
+	end
+
+	local parent = part.Parent
+	if parent and noRender.hasKeyword(parent.Name, noRender.decorKeywords) then
+		return true
+	end
+
+	if not part.CanCollide and not part.CanTouch then
+		return true
+	end
+
+	local character = player.Character
+	local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+
+	if rootPart and (part.Position - rootPart.Position).Magnitude > 450 then
+		return true
+	end
+
+	return false
+end
+
+function noRender.disableVisualEffect(instance)
+	if not instance or not instance.Parent then
+		return false
+	end
+
+	if instance:IsA("ParticleEmitter") then
+		pcall(function()
+			instance:Clear()
+		end)
+	end
+
+	if noRender.destructiveVfx then
+		return safeDestroy(instance)
+	end
+
+	local success = noRender.setPropertyOnce(instance, "Enabled", false)
+
+	if not success and instance:IsA("ForceField") then
+		success = noRender.setPropertyOnce(instance, "Visible", false)
+	end
+
+	if not success then
+		return safeDestroy(instance)
+	end
+
+	return true
+end
+
+function noRender.optimizeTextures(instance)
+	if instance:IsA("Decal") or instance:IsA("Texture") then
+		noRender.setPropertyOnce(instance, "Transparency", 1)
+		return
+	end
+
+	if instance:IsA("SurfaceAppearance") then
+		safeDestroy(instance)
+		return
+	end
+
+	if instance:IsA("BasePart") then
+		noRender.setPropertyOnce(instance, "Material", Enum.Material.SmoothPlastic)
+		noRender.setPropertyOnce(instance, "MaterialVariant", "")
+		noRender.setPropertyOnce(instance, "Reflectance", 0)
+	end
+
+	if instance:IsA("MeshPart") then
+		noRender.setPropertyOnce(instance, "TextureID", "")
+	elseif instance:IsA("SpecialMesh") then
+		noRender.setPropertyOnce(instance, "TextureId", "")
+	end
+end
+
+function noRender.optimizeMesh(instance)
+	if instance:IsA("MeshPart") then
+		noRender.setPropertyOnce(instance, "RenderFidelity", Enum.RenderFidelity.Performance)
+	end
+end
+
+function noRender.optimizeTransparency(instance)
+	if not instance:IsA("BasePart") then
+		return
+	end
+
+	local transparency = instance.Transparency
+
+	if transparency > 0 and transparency < 1 then
+		noRender.setPropertyOnce(instance, "Transparency", instance.CanCollide and 0 or 1)
+	end
+end
+
+function noRender.applyMapLite(instance)
+	if not instance:IsA("BasePart") or not noRender.isDecoration(instance) then
+		return
+	end
+
+	noRender.setPropertyOnce(instance, "LocalTransparencyModifier", 1)
+	noRender.setPropertyOnce(instance, "CastShadow", false)
+end
+
+local function applyGlobalSettings()
+	if noRender.sfx and not musicPlayer.currentSound then
+		lockProperty(SoundService, "Volume", 0)
+	else
+		unlockProperty(SoundService, "Volume", true)
+	end
+
+	if noRender.lighting then
+		lockProperty(Lighting, "GlobalShadows", false)
+		lockProperty(Lighting, "ShadowSoftness", 0)
+		lockProperty(Lighting, "EnvironmentDiffuseScale", 0)
+		lockProperty(Lighting, "EnvironmentSpecularScale", 0)
+	else
+		unlockProperty(Lighting, "GlobalShadows", true)
+		unlockProperty(Lighting, "ShadowSoftness", true)
+		unlockProperty(Lighting, "EnvironmentDiffuseScale", true)
+		unlockProperty(Lighting, "EnvironmentSpecularScale", true)
+	end
+
+	if terrain then
+		if noRender.terrain then
+			lockProperty(terrain, "Decoration", false)
+			lockProperty(terrain, "WaterWaveSize", 0)
+			lockProperty(terrain, "WaterWaveSpeed", 0)
+			lockProperty(terrain, "WaterReflectance", 0)
+		else
+			unlockProperty(terrain, "Decoration", true)
+			unlockProperty(terrain, "WaterWaveSize", true)
+			unlockProperty(terrain, "WaterWaveSpeed", true)
+			unlockProperty(terrain, "WaterReflectance", true)
+		end
+	end
+end
+
+local function processInstance(instance)
+	if not noRender.enabled or not instance or not instance.Parent then
+		return
+	end
+
+	if noRender.processedInstances[instance] == noRender.generation then
+		return
+	end
+
+	noRender.processedInstances[instance] = noRender.generation
+	noRender.processed += 1
+
+	local protected = noRender.isProtected(instance)
+
+	if noRender.vfx and not protected and destroyClasses[instance.ClassName] then
+		noRender.disableVisualEffect(instance)
+		return
+	end
+
+	if noRender.sfx then
+		if instance:IsA("Sound") then
+			if instance:GetAttribute("K27EMusicPlayer") then
+				return
+			end
+
+			pcall(function()
+				instance.Volume = 0
+				instance.Playing = false
+			end)
+			safeDestroy(instance)
+			return
+		end
+
+		if instance:IsA("SoundEffect") then
+			safeDestroy(instance)
+			return
+		end
+	end
+
+	if noRender.lighting and not protected then
+		if instance:IsA("PostEffect") or instance:IsA("Light") then
+			safeDestroy(instance)
+			return
+		end
+	end
+
+	if noRender.parts and instance:IsA("BasePart") then
+		noRender.setPropertyOnce(instance, "CastShadow", false)
+		noRender.setPropertyOnce(instance, "Reflectance", 0)
+	end
+
+	if not protected then
+		if noRender.textures then
+			noRender.optimizeTextures(instance)
+		end
+
+		if noRender.meshLod then
+			noRender.optimizeMesh(instance)
+		end
+
+		if noRender.simplifyTransparency then
+			noRender.optimizeTransparency(instance)
+		end
+
+		if noRender.mapLite then
+			noRender.applyMapLite(instance)
+		end
+	end
+end
+
+local function scanGame()
+	if not noRender.enabled then
+		return
+	end
+
+	if noRender.scanning then
+		noRender.pendingScan = true
+		return
+	end
+
+	noRender.scanning = true
+
+	repeat
+		noRender.pendingScan = false
+		noRender.processed = 0
+		noRender.destroyed = 0
+		noRender.modified = 0
+
+		local descendants = game:GetDescendants()
+
+		for index, instance in ipairs(descendants) do
+			if not noRender.enabled then
+				break
+			end
+
+			processInstance(instance)
+
+			if index % 300 == 0 then
+				task.wait()
+			end
+		end
+	until not noRender.pendingScan or not noRender.enabled
+
+	noRender.scanning = false
+end
+
+local function connectNoRender()
+	if noRender.descendantConnection then
+		noRender.descendantConnection:Disconnect()
+	end
+
+	noRender.descendantConnection = game.DescendantAdded:Connect(function(instance)
+		task.defer(processInstance, instance)
+	end)
+end
+
+local function setNoRenderEnabled(state)
+	if noRender.enabled == state then
+		return
+	end
+
+	noRender.enabled = state
+	noRender.generation += 1
+
+	if state then
+		applyGlobalSettings()
+		connectNoRender()
+		task.spawn(scanGame)
+	else
+		if noRender.descendantConnection then
+			noRender.descendantConnection:Disconnect()
+			noRender.descendantConnection = nil
+		end
+
+		unlockAllProperties(true)
+	end
+end
+
+local function refreshNoRender()
+	noRender.generation += 1
+
+	if not noRender.enabled then
+		return
+	end
+
+	unlockAllProperties(true)
+	applyGlobalSettings()
+	task.spawn(scanGame)
+end
+
+function noRender.syncUI()
+	for key, controller in pairs(noRender.ui) do
+		if type(controller) == "table" and controller.set and noRender[key] ~= nil then
+			controller.set(noRender[key], false)
+		end
+	end
+
+	if noRender.ui.adaptive then
+		noRender.ui.adaptive.set(noRender.adaptive.enabled, false)
+	end
+end
+
+function noRender.applyPreset(name, label)
+	local presets = {
+		Safe = {
+			vfx = true,
+			sfx = false,
+			lighting = true,
+			parts = true,
+			terrain = false,
+			textures = false,
+			meshLod = false,
+			simplifyTransparency = false,
+			mapLite = false,
+			protectGameplay = true,
+			destructiveVfx = false
+		},
+		["Blade Ball"] = {
+			vfx = true,
+			sfx = true,
+			lighting = true,
+			parts = true,
+			terrain = true,
+			textures = true,
+			meshLod = true,
+			simplifyTransparency = false,
+			mapLite = false,
+			protectGameplay = true,
+			destructiveVfx = false
+		},
+		Low = {
+			vfx = true,
+			sfx = true,
+			lighting = true,
+			parts = true,
+			terrain = true,
+			textures = true,
+			meshLod = true,
+			simplifyTransparency = true,
+			mapLite = false,
+			protectGameplay = true,
+			destructiveVfx = false
+		},
+		Extreme = {
+			vfx = true,
+			sfx = true,
+			lighting = true,
+			parts = true,
+			terrain = true,
+			textures = true,
+			meshLod = true,
+			simplifyTransparency = true,
+			mapLite = true,
+			protectGameplay = true,
+			destructiveVfx = true
+		}
+	}
+
+	local preset = presets[name]
+	if not preset then
+		return false
+	end
+
+	for key, value in pairs(preset) do
+		noRender[key] = value
+	end
+
+	noRender.preset = label or name
+	noRender.syncUI()
+	refreshNoRender()
+	return true
+end
+
+function noRender.setOption(key, value)
+	if noRender.adaptive.enabled then
+		noRender.setAdaptive(false)
+	end
+
+	noRender[key] = value == true
+	noRender.preset = "Custom"
+	noRender.syncUI()
+	refreshNoRender()
+end
+
+function noRender.setAdaptive(state)
+	state = state == true
+
+	if noRender.adaptive.enabled == state then
+		return
+	end
+
+	noRender.adaptive.enabled = state
+
+	if noRender.adaptive.connection then
+		noRender.adaptive.connection:Disconnect()
+		noRender.adaptive.connection = nil
+	end
+
+	if not state then
+		noRender.adaptive.tier = ""
+		noRender.syncUI()
+		return
+	end
+
+	noRender.adaptive.frames = 0
+	noRender.adaptive.elapsed = 0
+	noRender.adaptive.lastSwitch = 0
+
+	noRender.adaptive.connection = RunService.RenderStepped:Connect(function(deltaTime)
+		noRender.adaptive.frames += 1
+		noRender.adaptive.elapsed += deltaTime
+
+		if noRender.adaptive.elapsed < 1.5 then
+			return
+		end
+
+		local fps = math.floor((noRender.adaptive.frames / noRender.adaptive.elapsed) + 0.5)
+		noRender.adaptive.fps = fps
+		noRender.adaptive.frames = 0
+		noRender.adaptive.elapsed = 0
+
+		local tier
+		if fps >= 50 then
+			tier = "Safe"
+		elseif fps >= 35 then
+			tier = "Blade Ball"
+		elseif fps >= 20 then
+			tier = "Low"
+		else
+			tier = "Extreme"
+		end
+
+		if tier == noRender.adaptive.tier or os.clock() - noRender.adaptive.lastSwitch < 4 then
+			return
+		end
+
+		noRender.adaptive.tier = tier
+		noRender.adaptive.lastSwitch = os.clock()
+
+		noRender.applyPreset(tier, "Adaptive / " .. tier)
+
+		if noRender.onAdaptiveTierChanged then
+			task.defer(noRender.onAdaptiveTierChanged, tier, fps)
+		end
+	end)
+
+	noRender.syncUI()
+end
+
+local function emitMusicState()
+	if musicPlayer.onStateChanged then
+		task.defer(musicPlayer.onStateChanged)
+	end
+end
+
+local function emitTrackStarted(track)
+	if musicPlayer.onTrackStarted then
+		task.defer(musicPlayer.onTrackStarted, track)
+	end
+end
+
+local function ensureMusicFolder()
+	local function ensure(path)
+		if isFolder then
+			local checked, exists = pcall(isFolder, path)
+			if checked and exists then
+				return true
+			end
+		end
+
+		if makeFolder then
+			local created = pcall(makeFolder, path)
+			if created then
+				return true
+			end
+		end
+
+		if isFolder then
+			local checked, exists = pcall(isFolder, path)
+			if checked and exists then
+				return true
+			end
+		end
+
+		if listFiles then
+			local listed = pcall(listFiles, path)
+			if listed then
+				return true
+			end
+		end
+
+		return false
+	end
+
+	ensure("K27E")
+
+	if not ensure(musicPlayer.folder) then
+		return false, "Failed to create music folder"
+	end
+
+	return true
+end
+
+local function getMusicFileName(path)
+	local normalized = tostring(path):gsub("\\", "/")
+	local fileName = normalized:match("([^/]+)$") or normalized
+	return fileName:gsub("%.[^%.]+$", "")
+end
+
+local function getMusicExtension(path)
+	return string.lower(tostring(path):match("%.([^%.\\/]+)$") or "")
+end
+
+local function refreshMusicLibrary()
+	local folderReady, folderError = ensureMusicFolder()
+	if not folderReady then
+		return false, folderError
+	end
+
+	if not listFiles then
+		return false, "File listing is unavailable"
+	end
+
+	if not customAsset then
+		return false, "Custom asset loading is unavailable"
+	end
+
+	local listed, files = pcall(listFiles, musicPlayer.folder)
+	if not listed or type(files) ~= "table" then
+		return false, "Failed to read music folder"
+	end
+
+	local tracks = {}
+
+	for _, path in ipairs(files) do
+		if type(path) == "string" and MUSIC_EXTENSIONS[getMusicExtension(path)] then
+			table.insert(tracks, {
+				path = path,
+				name = getMusicFileName(path)
+			})
+		end
+	end
+
+	table.sort(tracks, function(first, second)
+		return string.lower(first.name) < string.lower(second.name)
+	end)
+
+	while #tracks > musicPlayer.limit do
+		table.remove(tracks)
+	end
+
+	local currentPath
+	if musicPlayer.currentIndex > 0 and musicPlayer.tracks[musicPlayer.currentIndex] then
+		currentPath = musicPlayer.tracks[musicPlayer.currentIndex].path
+	end
+
+	musicPlayer.tracks = tracks
+
+	if currentPath then
+		musicPlayer.currentIndex = 0
+		for index, track in ipairs(tracks) do
+			if track.path == currentPath then
+				musicPlayer.currentIndex = index
+				break
+			end
+		end
+	elseif #tracks > 0 and musicPlayer.currentIndex == 0 then
+		musicPlayer.currentIndex = 1
+	end
+
+	emitMusicState()
+	return true, #tracks
+end
+
+local function disconnectMusicEnded()
+	if musicPlayer.endedConnection then
+		musicPlayer.endedConnection:Disconnect()
+		musicPlayer.endedConnection = nil
+	end
+end
+
+local function restoreNoRenderSoundLock()
+	if noRender.enabled and noRender.sfx and not musicPlayer.currentSound then
+		lockProperty(SoundService, "Volume", 0)
+	end
+end
+
+local function destroyMusicSound(restoreSoundLock)
+	disconnectMusicEnded()
+
+	local sound = musicPlayer.currentSound
+	musicPlayer.currentSound = nil
+	musicPlayer.paused = false
+
+	if sound then
+		pcall(function()
+			sound:Stop()
+		end)
+
+		pcall(function()
+			sound:Destroy()
+		end)
+	end
+
+	if restoreSoundLock then
+		restoreNoRenderSoundLock()
+	end
+
+	emitMusicState()
+end
+
+local playMusicTrack
+
+playMusicTrack = function(index)
+	if #musicPlayer.tracks == 0 then
+		return false, "No music files were found"
+	end
+
+	index = tonumber(index) or 1
+	index = ((math.floor(index) - 1) % #musicPlayer.tracks) + 1
+
+	local track = musicPlayer.tracks[index]
+	local loaded, soundId = pcall(customAsset, track.path)
+
+	if not loaded or type(soundId) ~= "string" or soundId == "" then
+		return false, "Failed to load the selected file"
+	end
+
+	destroyMusicSound(false)
+	unlockProperty(SoundService, "Volume", true)
+
+	local sound = Instance.new("Sound")
+	sound.Name = "K27EMusicPlayerSound"
+	sound.SoundId = soundId
+	sound.Volume = musicPlayer.volume
+	sound.Looped = musicPlayer.looped
+	sound:SetAttribute("K27EMusicPlayer", true)
+	sound.Parent = SoundService
+
+	musicPlayer.currentIndex = index
+	musicPlayer.currentSound = sound
+	musicPlayer.paused = false
+
+	musicPlayer.endedConnection = sound.Ended:Connect(function()
+		if musicPlayer.currentSound ~= sound or musicPlayer.looped then
+			return
+		end
+
+		local nextIndex = musicPlayer.currentIndex + 1
+		local success = playMusicTrack(nextIndex)
+
+		if not success then
+			destroyMusicSound(true)
+		end
+	end)
+
+	local played = pcall(function()
+		sound:Play()
+	end)
+
+	if not played then
+		destroyMusicSound(true)
+		return false, "Failed to start playback"
+	end
+
+	emitMusicState()
+	emitTrackStarted(track)
+	return true, track
+end
+
+local function toggleMusicPlayback()
+	local sound = musicPlayer.currentSound
+
+	if not sound then
+		return playMusicTrack(musicPlayer.currentIndex > 0 and musicPlayer.currentIndex or 1)
+	end
+
+	if musicPlayer.paused then
+		local resumed = pcall(function()
+			sound:Resume()
+		end)
+
+		if not resumed then
+			return false, "Failed to resume playback"
+		end
+
+		musicPlayer.paused = false
+		emitMusicState()
+
+		local track = musicPlayer.tracks[musicPlayer.currentIndex]
+		if track then
+			emitTrackStarted(track)
+		end
+
+		return true, track
+	end
+
+	local paused = pcall(function()
+		sound:Pause()
+	end)
+
+	if not paused then
+		return false, "Failed to pause playback"
+	end
+
+	musicPlayer.paused = true
+	emitMusicState()
+	return true
+end
+
+local function playNextMusic()
+	if #musicPlayer.tracks == 0 then
+		return false, "No music files were found"
+	end
+
+	return playMusicTrack(musicPlayer.currentIndex + 1)
+end
+
+local function playPreviousMusic()
+	if #musicPlayer.tracks == 0 then
+		return false, "No music files were found"
+	end
+
+	return playMusicTrack(musicPlayer.currentIndex - 1)
+end
+
+local function stopMusic()
+	if not musicPlayer.currentSound then
+		return false, "Nothing is playing"
+	end
+
+	destroyMusicSound(true)
+	return true
+end
+
+local function setMusicVolume(value)
+	musicPlayer.volume = math.clamp(tonumber(value) or 0.65, 0, 1)
+
+	if musicPlayer.currentSound then
+		musicPlayer.currentSound.Volume = musicPlayer.volume
+	end
+
+	emitMusicState()
+end
+
+local function setMusicLooped(value)
+	musicPlayer.looped = value == true
+
+	if musicPlayer.currentSound then
+		musicPlayer.currentSound.Looped = musicPlayer.looped
+	end
+
+	emitMusicState()
+end
+
+local function seekMusic(ratio)
+	local sound = musicPlayer.currentSound
+	if not sound then
+		return false
+	end
+
+	local length = sound.TimeLength
+	if not length or length <= 0 then
+		return false
+	end
+
+	pcall(function()
+		sound.TimePosition = math.clamp(tonumber(ratio) or 0, 0, 1) * length
+	end)
+
+	emitMusicState()
+	return true
+end
+
+local KORBLOX_MESH_ID = "rbxassetid://902942096"
+local KORBLOX_TEXTURE_ID = "rbxassetid://902843398"
+local KORBLOX_NAME = "KorbloxVisual"
+
+local appearance = {
+	headless = false,
+	korblox = false,
+	version = 0,
+	connections = {}
+}
+
+local headlessOriginals = setmetatable({}, { __mode = "k" })
+local korbloxOriginals = setmetatable({}, { __mode = "k" })
+local r6Backups = setmetatable({}, { __mode = "k" })
+
+local oldAppearanceConnections = type(executorEnvironment) == "table"
+	and rawget(executorEnvironment, "K27EAppearanceConnections")
+	or nil
+
+if type(oldAppearanceConnections) == "table" then
+	for _, connection in pairs(oldAppearanceConnections) do
+		pcall(function()
+			connection:Disconnect()
+		end)
+	end
+end
+
+local function clearExistingAppearance(character)
+	local visual = character:FindFirstChild(KORBLOX_NAME)
+
+	if visual then
+		visual:Destroy()
+	end
+
+	local head = character:FindFirstChild("Head")
+
+	if head and head:IsA("BasePart") then
+		head.Transparency = 0
+		head.LocalTransparencyModifier = 0
+
+		for _, object in ipairs(head:GetDescendants()) do
+			if object:IsA("Decal") or object:IsA("Texture") then
+				object.Transparency = 0
+			end
+		end
+	end
+
+	for _, partName in ipairs({
+		"Right Leg",
+		"RightUpperLeg",
+		"RightLowerLeg",
+		"RightFoot"
+	}) do
+		local part = character:FindFirstChild(partName)
+
+		if part and part:IsA("BasePart") then
+			part.Transparency = 0
+			part.LocalTransparencyModifier = 0
+
+			local mesh = part:FindFirstChild("KorbloxMesh")
+
+			if mesh then
+				mesh:Destroy()
+			end
+		end
+	end
+end
+
+if player.Character then
+	pcall(clearExistingAppearance, player.Character)
+end
+
+local function storeProperty(storage, instance, property)
+	local properties = storage[instance]
+
+	if not properties then
+		properties = {}
+		storage[instance] = properties
+	end
+
+	if properties[property] == nil then
+		local success, value = pcall(function()
+			return instance[property]
+		end)
+
+		if success then
+			properties[property] = value
+		end
+	end
+end
+
+local function setStoredProperty(storage, instance, property, value)
+	if not instance then
+		return
+	end
+
+	storeProperty(storage, instance, property)
+
+	pcall(function()
+		instance[property] = value
+	end)
+end
+
+local function restoreProperties(storage, character)
+	for instance, properties in pairs(storage) do
+		local belongsToCharacter = false
+
+		pcall(function()
+			belongsToCharacter = instance == character or instance:IsDescendantOf(character)
+		end)
+
+		if belongsToCharacter then
+			for property, value in pairs(properties) do
+				pcall(function()
+					instance[property] = value
+				end)
+			end
+
+			storage[instance] = nil
+		end
+	end
+end
+
+local function setPartHidden(storage, part, hidden)
+	if not part or not part:IsA("BasePart") then
+		return
+	end
+
+	setStoredProperty(storage, part, "Transparency", hidden and 1 or 0)
+	setStoredProperty(storage, part, "LocalTransparencyModifier", hidden and 1 or 0)
+end
+
+local function getKorbloxScale(part)
+	return Vector3.new(part.Size.X, part.Size.Y / 2, part.Size.Z)
+end
+
+local function configureKorbloxMesh(mesh, part, offset)
+	mesh.MeshType = Enum.MeshType.FileMesh
+	mesh.MeshId = KORBLOX_MESH_ID
+	mesh.TextureId = KORBLOX_TEXTURE_ID
+	mesh.Scale = getKorbloxScale(part)
+	mesh.Offset = offset
+end
+
+local function applyHeadless(character)
+	local head = character:FindFirstChild("Head")
+
+	if not head or not head:IsA("BasePart") then
+		return
+	end
+
+	setPartHidden(headlessOriginals, head, true)
+
+	for _, object in ipairs(head:GetDescendants()) do
+		if object:IsA("Decal") or object:IsA("Texture") then
+			setStoredProperty(headlessOriginals, object, "Transparency", 1)
+		end
+	end
+end
+
+local function restoreHeadless(character)
+	restoreProperties(headlessOriginals, character)
+end
+
+local function backupAndDestroyR6Meshes(character, rightLeg)
+	local backups = r6Backups[character]
+
+	if not backups then
+		backups = {}
+		r6Backups[character] = backups
+	end
+
+	local function backup(object, parent)
+		local clone
+		local success = pcall(function()
+			clone = object:Clone()
+		end)
+
+		if success and clone then
+			table.insert(backups, {
+				clone = clone,
+				parent = parent
+			})
+		end
+
+		pcall(function()
+			object:Destroy()
+		end)
+	end
+
+	for _, object in ipairs(character:GetChildren()) do
+		if object:IsA("CharacterMesh") and object.BodyPart == Enum.BodyPart.RightLeg then
+			backup(object, character)
+		end
+	end
+
+	for _, object in ipairs(rightLeg:GetChildren()) do
+		if object:IsA("DataModelMesh") and object.Name ~= "KorbloxMesh" then
+			backup(object, rightLeg)
+		end
+	end
+end
+
+local function applyKorbloxR6(character)
+	local rightLeg = character:FindFirstChild("Right Leg")
+
+	if not rightLeg or not rightLeg:IsA("BasePart") then
+		return
+	end
+
+	local r15Visual = character:FindFirstChild(KORBLOX_NAME)
+
+	if r15Visual then
+		r15Visual:Destroy()
+	end
+
+	backupAndDestroyR6Meshes(character, rightLeg)
+	setStoredProperty(korbloxOriginals, rightLeg, "Transparency", 0)
+	setStoredProperty(korbloxOriginals, rightLeg, "LocalTransparencyModifier", 0)
+
+	local mesh = rightLeg:FindFirstChild("KorbloxMesh")
+
+	if mesh and not mesh:IsA("SpecialMesh") then
+		mesh:Destroy()
+		mesh = nil
+	end
+
+	if not mesh then
+		mesh = Instance.new("SpecialMesh")
+		mesh.Name = "KorbloxMesh"
+		mesh.Parent = rightLeg
+	end
+
+	configureKorbloxMesh(mesh, rightLeg, Vector3.new(0, 0.7, 0))
+end
+
+local function applyKorbloxR15(character)
+	local rightUpperLeg = character:FindFirstChild("RightUpperLeg")
+	local rightLowerLeg = character:FindFirstChild("RightLowerLeg")
+	local rightFoot = character:FindFirstChild("RightFoot")
+
+	if not rightUpperLeg or not rightLowerLeg or not rightFoot then
+		return
+	end
+
+	if not rightUpperLeg:IsA("BasePart")
+		or not rightLowerLeg:IsA("BasePart")
+		or not rightFoot:IsA("BasePart") then
+		return
+	end
+
+	setPartHidden(korbloxOriginals, rightUpperLeg, true)
+	setPartHidden(korbloxOriginals, rightLowerLeg, true)
+	setPartHidden(korbloxOriginals, rightFoot, true)
+
+	local visual = character:FindFirstChild(KORBLOX_NAME)
+
+	if visual and not visual:IsA("Part") then
+		visual:Destroy()
+		visual = nil
+	end
+
+	if not visual then
+		visual = Instance.new("Part")
+		visual.Name = KORBLOX_NAME
+		visual.Size = rightUpperLeg.Size
+		visual.CFrame = rightUpperLeg.CFrame
+		visual.Anchored = false
+		visual.CanCollide = false
+		visual.CanTouch = false
+		visual.CanQuery = false
+		visual.CastShadow = false
+		visual.Massless = true
+		visual.Transparency = 0
+		visual.Parent = character
+
+		local mesh = Instance.new("SpecialMesh")
+		mesh.Name = "KorbloxMesh"
+		mesh.Parent = visual
+
+		local weld = Instance.new("WeldConstraint")
+		weld.Name = "KorbloxWeld"
+		weld.Part0 = rightUpperLeg
+		weld.Part1 = visual
+		weld.Parent = visual
+	end
+
+	visual.Size = rightUpperLeg.Size
+	visual.Transparency = 0
+	visual.LocalTransparencyModifier = 0
+
+	local mesh = visual:FindFirstChild("KorbloxMesh")
+
+	if mesh and not mesh:IsA("SpecialMesh") then
+		mesh:Destroy()
+		mesh = nil
+	end
+
+	if not mesh then
+		mesh = Instance.new("SpecialMesh")
+		mesh.Name = "KorbloxMesh"
+		mesh.Parent = visual
+	end
+
+	local weld = visual:FindFirstChild("KorbloxWeld")
+
+	if not weld or not weld:IsA("WeldConstraint") then
+		if weld then
+			weld:Destroy()
+		end
+
+		visual.CFrame = rightUpperLeg.CFrame
+
+		weld = Instance.new("WeldConstraint")
+		weld.Name = "KorbloxWeld"
+		weld.Part0 = rightUpperLeg
+		weld.Part1 = visual
+		weld.Parent = visual
+	else
+		weld.Part0 = rightUpperLeg
+		weld.Part1 = visual
+	end
+
+	configureKorbloxMesh(mesh, rightUpperLeg, Vector3.zero)
+end
+
+local function restoreR6Backups(character)
+	local backups = r6Backups[character]
+
+	if not backups then
+		return
+	end
+
+	for _, backup in ipairs(backups) do
+		local parent = backup.parent
+		local clone = backup.clone
+
+		if parent and parent.Parent and clone then
+			local duplicate = false
+
+			for _, child in ipairs(parent:GetChildren()) do
+				if child.ClassName == clone.ClassName and child.Name == clone.Name then
+					duplicate = true
+					break
+				end
+			end
+
+			if not duplicate then
+				clone.Parent = parent
+			end
+		end
+	end
+
+	r6Backups[character] = nil
+end
+
+local function restoreKorblox(character)
+	local visual = character:FindFirstChild(KORBLOX_NAME)
+
+	if visual then
+		visual:Destroy()
+	end
+
+	local rightLeg = character:FindFirstChild("Right Leg")
+
+	if rightLeg then
+		local mesh = rightLeg:FindFirstChild("KorbloxMesh")
+
+		if mesh then
+			mesh:Destroy()
+		end
+	end
+
+	restoreProperties(korbloxOriginals, character)
+	restoreR6Backups(character)
+end
+
+local function applyAppearance(character)
+	if appearance.headless then
+		applyHeadless(character)
+	else
+		restoreHeadless(character)
+	end
+
+	if appearance.korblox then
+		if character:FindFirstChild("Right Leg") then
+			applyKorbloxR6(character)
+		else
+			applyKorbloxR15(character)
+		end
+	else
+		restoreKorblox(character)
+	end
+end
+
+local function refreshAppearance()
+	appearance.version += 1
+	local version = appearance.version
+	local character = player.Character
+
+	if not character then
+		return
+	end
+
+	pcall(applyAppearance, character)
+
+	if not appearance.headless and not appearance.korblox then
+		return
+	end
+
+	task.spawn(function()
+		character:WaitForChild("Humanoid", 10)
+		character:WaitForChild("Head", 10)
+		task.wait()
+
+		while version == appearance.version
+			and player.Character == character
+			and character.Parent do
+			pcall(applyAppearance, character)
+			task.wait(0.5)
+		end
+	end)
+end
+
+local function setHeadlessEnabled(value)
+	appearance.headless = value == true
+	refreshAppearance()
+end
+
+local function setKorbloxEnabled(value)
+	appearance.korblox = value == true
+	refreshAppearance()
+end
+
+appearance.connections.characterAdded = player.CharacterAdded:Connect(function()
+	task.defer(refreshAppearance)
+end)
+
+appearance.connections.appearanceLoaded = player.CharacterAppearanceLoaded:Connect(function(character)
+	if character == player.Character then
+		task.defer(refreshAppearance)
+	end
+end)
+
+if type(executorEnvironment) == "table" then
+	rawset(executorEnvironment, "K27EAppearanceConnections", appearance.connections)
+end
+
+
+local gui = create("ScreenGui", {
+	Name = "TesteHub",
+	ResetOnSpawn = false,
+	IgnoreGuiInset = false,
+	DisplayOrder = 1000,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+}, playerGui)
+
+local root = create("CanvasGroup", {
+	Name = "Root",
+	Size = UDim2.fromOffset(520, 334),
+	Position = UDim2.new(0.5, -260, 0.5, -167),
+	BackgroundColor3 = theme.background,
+	BorderSizePixel = 0,
+	GroupTransparency = 1,
+	ClipsDescendants = true
+}, gui)
+
+addCorner(root, 12)
+addStroke(root, theme.borderActive, 1, 0.28)
+
+create("UIGradient", {
+	Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, theme.background),
+		ColorSequenceKeypoint.new(0.52, theme.gradientMid),
+		ColorSequenceKeypoint.new(1, theme.gradientHigh)
+	}),
+	Rotation = 125
+}, root)
+
+local scale = create("UIScale", {
+	Scale = 1
+}, root)
+
+local function updateScale()
+	local camera = Workspace.CurrentCamera
+	if not camera then
+		return
+	end
+
+	local viewport = camera.ViewportSize
+	local target = math.min(viewport.X / 620, viewport.Y / 430, 1)
+	scale.Scale = math.clamp(target * interface.scale, 0.56, 1.2)
+end
+
+updateScale()
+
+if Workspace.CurrentCamera then
+	Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+end
+
+local topbar = create("Frame", {
+	Name = "Topbar",
+	Size = UDim2.new(1, 0, 0, 42),
+	BackgroundColor3 = theme.surface,
+	BorderSizePixel = 0
+}, root)
+
+create("UIGradient", {
+	Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, theme.surfaceAlt),
+		ColorSequenceKeypoint.new(1, theme.surface)
+	}),
+	Rotation = 0
+}, topbar)
+
+create("Frame", {
+	Size = UDim2.new(1, 0, 0, 1),
+	Position = UDim2.new(0, 0, 1, -1),
+	BackgroundColor3 = theme.accentSoft,
+	BorderSizePixel = 0
+}, topbar)
+
+local brandAccent = create("Frame", {
+	Size = UDim2.fromOffset(3, 22),
+	Position = UDim2.fromOffset(14, 10),
+	BackgroundColor3 = theme.accent,
+	BorderSizePixel = 0
+}, topbar)
+
+addCorner(brandAccent, 2)
+
+local brand = create("TextLabel", {
+	Size = UDim2.fromOffset(180, 20),
+	Position = UDim2.fromOffset(25, 4),
+	BackgroundTransparency = 1,
+	Text = "K27E",
+	TextColor3 = theme.text,
+	TextSize = 15,
+	Font = Enum.Font.SourceSansBold,
+	TextXAlignment = Enum.TextXAlignment.Left
+}, topbar)
+
+local subtitle = create("TextLabel", {
+	Size = UDim2.fromOffset(200, 12),
+	Position = UDim2.fromOffset(25, 23),
+	BackgroundTransparency = 1,
+	Text = "performance control panel",
+	TextColor3 = theme.subtext,
+	TextSize = 11,
+	Font = Enum.Font.SourceSans,
+	TextXAlignment = Enum.TextXAlignment.Left
+}, topbar)
+
+local minimizeButton = create("TextButton", {
+	Size = UDim2.fromOffset(29, 28),
+	Position = UDim2.new(1, -68, 0, 7),
+	BackgroundColor3 = theme.surfaceAlt,
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	Text = "-",
+	TextColor3 = theme.subtext,
+	TextSize = 15,
+	Font = Enum.Font.SourceSans,
+	AutoButtonColor = false
+}, topbar)
+
+addCorner(minimizeButton, 7)
+
+local closeButton = create("TextButton", {
+	Size = UDim2.fromOffset(29, 28),
+	Position = UDim2.new(1, -35, 0, 7),
+	BackgroundColor3 = theme.surfaceAlt,
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	Text = "x",
+	TextColor3 = theme.subtext,
+	TextSize = 14,
+	Font = Enum.Font.SourceSans,
+	AutoButtonColor = false
+}, topbar)
+
+addCorner(closeButton, 7)
+
+local restoreButton = create("TextButton", {
+	Size = UDim2.new(1, 0, 1, 0),
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	Text = "",
+	AutoButtonColor = false,
+	Visible = false,
+	ZIndex = 10
+}, topbar)
+
+local sidebar = create("Frame", {
+	Name = "Sidebar",
+	Size = UDim2.new(0, 146, 1, -42),
+	Position = UDim2.fromOffset(0, 42),
+	BackgroundColor3 = theme.surface,
+	BorderSizePixel = 0
+}, root)
+
+create("UIGradient", {
+	Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, theme.surfaceAlt),
+		ColorSequenceKeypoint.new(1, theme.surface)
+	}),
+	Rotation = 90
+}, sidebar)
+
+create("Frame", {
+	Size = UDim2.new(0, 1, 1, 0),
+	Position = UDim2.new(1, -1, 0, 0),
+	BackgroundColor3 = theme.accentSoft,
+	BorderSizePixel = 0
+}, sidebar)
+
+create("TextLabel", {
+	Size = UDim2.new(1, -24, 0, 18),
+	Position = UDim2.fromOffset(14, 13),
+	BackgroundTransparency = 1,
+	Text = "MENU",
+	TextColor3 = theme.dim,
+	TextSize = 10,
+	Font = Enum.Font.SourceSansSemibold,
+	TextXAlignment = Enum.TextXAlignment.Left
+}, sidebar)
+
+local navigation = create("Frame", {
+	Size = UDim2.new(1, -18, 0, 190),
+	Position = UDim2.fromOffset(9, 38),
+	BackgroundTransparency = 1
+}, sidebar)
+
+create("UIListLayout", {
+	Padding = UDim.new(0, 3),
+	SortOrder = Enum.SortOrder.LayoutOrder
+}, navigation)
+
+local shortcut = create("Frame", {
+	Size = UDim2.new(1, -18, 0, 44),
+	Position = UDim2.new(0, 9, 1, -53),
+	BackgroundColor3 = theme.surfaceAlt,
+	BorderSizePixel = 0
+}, sidebar)
+
+addCorner(shortcut, 8)
+addStroke(shortcut, theme.border, 1, 0.28)
+
+local shortcutAccent = create("Frame", {
+	Size = UDim2.fromOffset(3, 22),
+	Position = UDim2.fromOffset(8, 11),
+	BackgroundColor3 = theme.accent,
+	BorderSizePixel = 0
+}, shortcut)
+
+addCorner(shortcutAccent, 2)
+
+create("TextLabel", {
+	Size = UDim2.new(1, -24, 0, 16),
+	Position = UDim2.fromOffset(18, 6),
+	BackgroundTransparency = 1,
+	Text = "RIGHT SHIFT",
+	TextColor3 = theme.text,
+	TextSize = 10,
+	Font = Enum.Font.SourceSansSemibold,
+	TextXAlignment = Enum.TextXAlignment.Left
+}, shortcut)
+
+create("TextLabel", {
+	Size = UDim2.new(1, -24, 0, 14),
+	Position = UDim2.fromOffset(18, 22),
+	BackgroundTransparency = 1,
+	Text = "show / hide",
+	TextColor3 = theme.subtext,
+	TextSize = 10,
+	Font = Enum.Font.SourceSans,
+	TextXAlignment = Enum.TextXAlignment.Left
+}, shortcut)
+
+local content = create("Frame", {
+	Name = "Content",
+	Size = UDim2.new(1, -146, 1, -42),
+	Position = UDim2.fromOffset(146, 42),
+	BackgroundColor3 = theme.background,
+	BackgroundTransparency = 0,
+	BorderSizePixel = 0,
+	ClipsDescendants = true
+}, root)
+
+local pageContainer = create("Frame", {
+	Size = UDim2.new(1, -28, 1, -22),
+	Position = UDim2.fromOffset(14, 11),
+	BackgroundTransparency = 1,
+	ClipsDescendants = true
+}, content)
+
+local pages = {}
+local tabs = {}
+local activePage
+local switching = false
+
+local function createPage(name)
+	local page = create("CanvasGroup", {
+		Name = name,
+		Size = UDim2.new(1, 0, 1, 0),
+		Position = UDim2.fromOffset(16, 0),
+		BackgroundTransparency = 1,
+		GroupTransparency = 1,
+		Visible = false
+	}, pageContainer)
+
+	local scroll = create("ScrollingFrame", {
+		Name = "Scroll",
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 2,
+		ScrollBarImageColor3 = theme.accentSoft,
+		CanvasSize = UDim2.fromOffset(0, 0),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y
+	}, page)
+
+	create("UIListLayout", {
+		Padding = UDim.new(0, 9),
+		SortOrder = Enum.SortOrder.LayoutOrder
+	}, scroll)
+
+	create("UIPadding", {
+		PaddingRight = UDim.new(0, 5),
+		PaddingBottom = UDim.new(0, 8)
+	}, scroll)
+
+	pages[name] = {
+		group = page,
+		scroll = scroll
+	}
+
+	return scroll
+end
+
+local function setTabVisual(name, selected)
+	local tab = tabs[name]
+	if not tab then
+		return
+	end
+
+	playTween(tab.button, {
+		BackgroundColor3 = selected and theme.selection or theme.surface,
+		BackgroundTransparency = selected and 0 or 0.18
+	}, 0.22)
+
+	playTween(tab.text, {
+		TextColor3 = selected and theme.text or theme.subtext
+	}, 0.22)
+
+	playTween(tab.indicator, {
+		BackgroundTransparency = selected and 0 or 0.18,
+		Size = selected and UDim2.fromOffset(3, 15) or UDim2.fromOffset(3, 5)
+	}, 0.22)
+
+	playTween(tab.dot, {
+		BackgroundColor3 = selected and theme.accentBright or theme.dim,
+		BackgroundTransparency = selected and 0 or 0.15
+	}, 0.22)
+end
+
+local function switchPage(name)
+	if switching or activePage == name or not pages[name] then
+		return
+	end
+
+	switching = true
+
+	local incoming = pages[name].group
+	local outgoing = activePage and pages[activePage].group
+
+	for tabName in pairs(tabs) do
+		setTabVisual(tabName, tabName == name)
+	end
+
+	if outgoing then
+		playTween(outgoing, {
+			GroupTransparency = 1,
+			Position = UDim2.fromOffset(-14, 0)
+		}, 0.18, Enum.EasingStyle.Quad)
+
+		task.wait(0.13)
+		outgoing.Visible = false
+	end
+
+	incoming.Visible = true
+	incoming.GroupTransparency = 1
+	incoming.Position = UDim2.fromOffset(16, 0)
+
+	playTween(incoming, {
+		GroupTransparency = 0,
+		Position = UDim2.fromOffset(0, 0)
+	}, 0.24, Enum.EasingStyle.Quint)
+
+	activePage = name
+	task.wait(0.24)
+	switching = false
+end
+
+local function createTab(name, label, index)
+	local button = create("TextButton", {
+		Name = name,
+		Size = UDim2.new(1, 0, 0, 29),
+		BackgroundColor3 = theme.surface,
+		BackgroundTransparency = 0.18,
+		BorderSizePixel = 0,
+		Text = "",
+		AutoButtonColor = false,
+		LayoutOrder = index
+	}, navigation)
+
+	addCorner(button, 8)
+
+	local indicator = create("Frame", {
+		Size = UDim2.fromOffset(3, 6),
+		Position = UDim2.new(0, 1, 0.5, -3),
+		BackgroundColor3 = theme.accent,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0
+	}, button)
+
+	addCorner(indicator, 2)
+
+	local dot = create("Frame", {
+		Size = UDim2.fromOffset(6, 6),
+		Position = UDim2.new(0, 13, 0.5, -3),
+		BackgroundColor3 = theme.dim,
+		BackgroundTransparency = 0.03,
+		BorderSizePixel = 0
+	}, button)
+
+	addCorner(dot, 3)
+
+	local text = create("TextLabel", {
+		Size = UDim2.new(1, -33, 1, 0),
+		Position = UDim2.fromOffset(28, 0),
+		BackgroundTransparency = 1,
+		Text = label,
+		TextColor3 = theme.text,
+		TextSize = 11,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, button)
+
+	tabs[name] = {
+		button = button,
+		text = text,
+		indicator = indicator,
+		dot = dot
+	}
+
+	button.MouseEnter:Connect(function()
+		if activePage ~= name then
+			playTween(button, {
+				BackgroundColor3 = theme.hover,
+				BackgroundTransparency = 0.03
+			}, 0.16)
+
+			playTween(text, {
+				TextColor3 = theme.text
+			}, 0.16)
+		end
+	end)
+
+	button.MouseLeave:Connect(function()
+		if activePage ~= name then
+			playTween(button, {
+				BackgroundColor3 = theme.surface,
+				BackgroundTransparency = 0.18
+			}, 0.16)
+
+			playTween(text, {
+				TextColor3 = theme.subtext
+			}, 0.16)
+		end
+	end)
+
+	button.MouseButton1Click:Connect(function()
+		switchPage(name)
+	end)
+end
+
+local function createSection(parent, text)
+	local section = create("Frame", {
+		Size = UDim2.new(1, 0, 0, 21),
+		BackgroundTransparency = 1
+	}, parent)
+
+	local accent = create("Frame", {
+		Size = UDim2.fromOffset(3, 10),
+		Position = UDim2.fromOffset(0, 6),
+		BackgroundColor3 = theme.accent,
+		BorderSizePixel = 0
+	}, section)
+
+	addCorner(accent, 2)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -12, 1, 0),
+		Position = UDim2.fromOffset(11, 0),
+		BackgroundTransparency = 1,
+		Text = string.upper(text),
+		TextColor3 = theme.subtext,
+		TextSize = 10,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, section)
+
+	return section
+end
+
+local function createCard(parent, height)
+	local card = create("Frame", {
+		Size = UDim2.new(1, -2, 0, height or 44),
+		BackgroundColor3 = theme.surface,
+		BorderSizePixel = 0
+	}, parent)
+
+	addCorner(card, 9)
+	local cardStroke = addStroke(card, theme.border, 1, 0.24)
+
+	card.MouseEnter:Connect(function()
+		playTween(card, {
+			BackgroundColor3 = theme.elevated
+		}, 0.18)
+
+		playTween(cardStroke, {
+			Color = theme.borderActive,
+			Transparency = 0.04
+		}, 0.18)
+	end)
+
+	card.MouseLeave:Connect(function()
+		playTween(card, {
+			BackgroundColor3 = theme.surface
+		}, 0.18)
+
+		playTween(cardStroke, {
+			Color = theme.border,
+			Transparency = 0.03
+		}, 0.18)
+	end)
+
+	return card
+end
+
+local function createInfo(parent, titleText, description)
+	local card = createCard(parent, 66)
+
+	local marker = create("Frame", {
+		Size = UDim2.fromOffset(4, 36),
+		Position = UDim2.fromOffset(11, 15),
+		BackgroundColor3 = theme.accentSoft,
+		BorderSizePixel = 0
+	}, card)
+
+	addCorner(marker, 2)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -37, 0, 19),
+		Position = UDim2.fromOffset(25, 8),
+		BackgroundTransparency = 1,
+		Text = titleText,
+		TextColor3 = theme.text,
+		TextSize = 12,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, card)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -37, 0, 31),
+		Position = UDim2.fromOffset(25, 28),
+		BackgroundTransparency = 1,
+		Text = description,
+		TextColor3 = theme.text,
+		TextSize = 10,
+		Font = Enum.Font.SourceSans,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top
+	}, card)
+
+	return card
+end
+
+local function createButton(parent, text, callback)
+	local button = create("TextButton", {
+		Size = UDim2.new(1, -2, 0, 41),
+		BackgroundColor3 = theme.surface,
+		BorderSizePixel = 0,
+		Text = "",
+		AutoButtonColor = false
+	}, parent)
+
+	addCorner(button, 9)
+	local buttonStroke = addStroke(button, theme.border, 1, 0.24)
+
+	local buttonText = create("TextLabel", {
+		Size = UDim2.new(1, -44, 1, 0),
+		Position = UDim2.fromOffset(13, 0),
+		BackgroundTransparency = 1,
+		Text = text,
+		TextColor3 = theme.text,
+		TextSize = 12,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, button)
+
+	local arrow = create("TextLabel", {
+		Size = UDim2.fromOffset(24, 24),
+		Position = UDim2.new(1, -33, 0.5, -12),
+		BackgroundColor3 = theme.surfaceAlt,
+		BorderSizePixel = 0,
+		Text = ">",
+		TextColor3 = theme.subtext,
+		TextSize = 12,
+		Font = Enum.Font.SourceSansSemibold
+	}, button)
+
+	addCorner(arrow, 7)
+
+	button.MouseEnter:Connect(function()
+		playTween(button, {
+			BackgroundColor3 = theme.hover
+		}, 0.16)
+
+		playTween(buttonStroke, {
+			Color = theme.borderActive,
+			Transparency = 0.03
+		}, 0.16)
+
+		playTween(arrow, {
+			BackgroundColor3 = theme.accentSoft,
+			TextColor3 = theme.text
+		}, 0.16)
+	end)
+
+	button.MouseLeave:Connect(function()
+		playTween(button, {
+			BackgroundColor3 = theme.surface
+		}, 0.16)
+
+		playTween(buttonStroke, {
+			Color = theme.border,
+			Transparency = 0.03
+		}, 0.16)
+
+		playTween(arrow, {
+			BackgroundColor3 = theme.surfaceAlt,
+			TextColor3 = theme.subtext
+		}, 0.16)
+	end)
+
+	button.MouseButton1Down:Connect(function()
+		playTween(button, {
+			BackgroundColor3 = theme.selection
+		}, 0.08)
+
+		playTween(buttonText, {
+			TextColor3 = theme.accentBright
+		}, 0.08)
+	end)
+
+	button.MouseButton1Up:Connect(function()
+		playTween(button, {
+			BackgroundColor3 = theme.hover
+		}, 0.1)
+
+		playTween(buttonText, {
+			TextColor3 = theme.text
+		}, 0.1)
+	end)
+
+	button.MouseButton1Click:Connect(function()
+		if callback then
+			callback()
+		end
+	end)
+
+	return button
+end
+
+local function createTextInput(parent, titleText, placeholder)
+	local card = createCard(parent, 67)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -24, 0, 16),
+		Position = UDim2.fromOffset(12, 7),
+		BackgroundTransparency = 1,
+		Text = titleText,
+		TextColor3 = theme.text,
+		TextSize = 10,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, card)
+
+	local inputFrame = create("Frame", {
+		Size = UDim2.new(1, -24, 0, 30),
+		Position = UDim2.fromOffset(12, 28),
+		BackgroundColor3 = theme.input,
+		BorderSizePixel = 0
+	}, card)
+
+	addCorner(inputFrame, 7)
+	local inputStroke = addStroke(inputFrame, theme.border, 1, 0.16)
+
+	local input = create("TextBox", {
+		Size = UDim2.new(1, -20, 1, 0),
+		Position = UDim2.fromOffset(10, 0),
+		BackgroundTransparency = 1,
+		Text = "",
+		PlaceholderText = placeholder,
+		PlaceholderColor3 = theme.dim,
+		TextColor3 = theme.text,
+		TextSize = 11,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ClearTextOnFocus = false,
+		MultiLine = false
+	}, inputFrame)
+
+	input.Focused:Connect(function()
+		playTween(inputFrame, {
+			BackgroundColor3 = theme.surfaceAlt
+		}, 0.18)
+
+		playTween(inputStroke, {
+			Color = theme.accent,
+			Transparency = 0.04
+		}, 0.18)
+	end)
+
+	input.FocusLost:Connect(function()
+		playTween(inputFrame, {
+			BackgroundColor3 = theme.input
+		}, 0.18)
+
+		playTween(inputStroke, {
+			Color = theme.border,
+			Transparency = 0.16
+		}, 0.18)
+	end)
+
+	return input
+end
+
+local function createTextArea(parent, titleText, placeholder, height)
+	local areaHeight = math.max(110, height or 150)
+	local card = createCard(parent, areaHeight + 38)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -24, 0, 16),
+		Position = UDim2.fromOffset(12, 7),
+		BackgroundTransparency = 1,
+		Text = titleText,
+		TextColor3 = theme.text,
+		TextSize = 10,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, card)
+
+	local inputFrame = create("Frame", {
+		Size = UDim2.new(1, -24, 0, areaHeight),
+		Position = UDim2.fromOffset(12, 29),
+		BackgroundColor3 = theme.input,
+		BorderSizePixel = 0,
+		ClipsDescendants = true
+	}, card)
+
+	addCorner(inputFrame, 7)
+	local inputStroke = addStroke(inputFrame, theme.border, 1, 0.16)
+
+	local input = create("TextBox", {
+		Size = UDim2.new(1, -20, 1, -16),
+		Position = UDim2.fromOffset(10, 8),
+		BackgroundTransparency = 1,
+		Text = "",
+		PlaceholderText = placeholder,
+		PlaceholderColor3 = theme.dim,
+		TextColor3 = theme.text,
+		TextSize = 11,
+		Font = Enum.Font.Code,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		ClearTextOnFocus = false,
+		MultiLine = true,
+		TextWrapped = false
+	}, inputFrame)
+
+	input.Focused:Connect(function()
+		playTween(inputFrame, {
+			BackgroundColor3 = theme.surfaceAlt
+		}, 0.18)
+
+		playTween(inputStroke, {
+			Color = theme.accent,
+			Transparency = 0.04
+		}, 0.18)
+	end)
+
+	input.FocusLost:Connect(function()
+		playTween(inputFrame, {
+			BackgroundColor3 = theme.input
+		}, 0.18)
+
+		playTween(inputStroke, {
+			Color = theme.border,
+			Transparency = 0.16
+		}, 0.18)
+	end)
+
+	return input
+end
+
+local function createToggle(parent, text, defaultValue, callback)
+	local enabled = defaultValue == true
+	local card = createCard(parent, 46)
+
+	local label = create("TextLabel", {
+		Size = UDim2.new(1, -78, 1, 0),
+		Position = UDim2.fromOffset(13, 0),
+		BackgroundTransparency = 1,
+		Text = text,
+		TextColor3 = theme.text,
+		TextSize = 12,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, card)
+
+	local toggle = create("TextButton", {
+		Size = UDim2.fromOffset(38, 20),
+		Position = UDim2.new(1, -51, 0.5, -10),
+		BackgroundColor3 = enabled and theme.accent or theme.surfaceAlt,
+		BorderSizePixel = 0,
+		Text = "",
+		AutoButtonColor = false
+	}, card)
+
+	addCorner(toggle, 10)
+	local toggleStroke = addStroke(toggle, enabled and theme.accentBright or theme.borderActive, 1, 0.25)
+
+	local knob = create("Frame", {
+		Size = UDim2.fromOffset(14, 14),
+		Position = enabled and UDim2.new(1, -17, 0.5, -7) or UDim2.fromOffset(3, 3),
+		BackgroundColor3 = enabled and theme.text or theme.subtext,
+		BorderSizePixel = 0
+	}, toggle)
+
+	addCorner(knob, 7)
+
+	local function update(runCallback)
+		playTween(toggle, {
+			BackgroundColor3 = enabled and theme.accent or theme.surfaceAlt
+		}, 0.2)
+
+		playTween(toggleStroke, {
+			Color = enabled and theme.accentBright or theme.borderActive,
+			Transparency = enabled and 0.12 or 0.25
+		}, 0.2)
+
+		playTween(knob, {
+			Position = enabled and UDim2.new(1, -17, 0.5, -7) or UDim2.fromOffset(3, 3),
+			BackgroundColor3 = enabled and theme.text or theme.subtext
+		}, 0.2)
+
+		playTween(label, {
+			TextColor3 = enabled and theme.text or theme.subtext
+		}, 0.2)
+
+		if runCallback and callback then
+			callback(enabled)
+		end
+	end
+
+	toggle.MouseButton1Click:Connect(function()
+		enabled = not enabled
+		update(true)
+	end)
+
+	return {
+		card = card,
+		set = function(value, runCallback)
+			enabled = value == true
+			update(runCallback == true)
+		end,
+		get = function()
+			return enabled
+		end
+	}
+end
+
+
+local function createRawHistoryPanel(parent, onUse)
+	local card = createCard(parent, 190)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -82, 0, 18),
+		Position = UDim2.fromOffset(12, 8),
+		BackgroundTransparency = 1,
+		Text = "RECENT RAW URLS",
+		TextColor3 = theme.text,
+		TextSize = 11,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, card)
+
+	local countLabel = create("TextLabel", {
+		Size = UDim2.fromOffset(64, 18),
+		Position = UDim2.new(1, -76, 0, 8),
+		BackgroundTransparency = 1,
+		Text = "0 / " .. RAW_HISTORY_LIMIT,
+		TextColor3 = theme.subtext,
+		TextSize = 10,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Right
+	}, card)
+
+	local list = create("ScrollingFrame", {
+		Size = UDim2.new(1, -24, 0, 142),
+		Position = UDim2.fromOffset(12, 37),
+		BackgroundColor3 = theme.input,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 3,
+		ScrollBarImageColor3 = theme.accent,
+		CanvasSize = UDim2.fromOffset(0, 0),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ClipsDescendants = true
+	}, card)
+
+	addCorner(list, 8)
+	addStroke(list, theme.border, 1, 0.08)
+
+	local layout = create("UIListLayout", {
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder
+	}, list)
+
+	create("UIPadding", {
+		PaddingTop = UDim.new(0, 7),
+		PaddingBottom = UDim.new(0, 7),
+		PaddingLeft = UDim.new(0, 7),
+		PaddingRight = UDim.new(0, 7)
+	}, list)
+
+	local function refresh()
+		for _, child in ipairs(list:GetChildren()) do
+			if child ~= layout and not child:IsA("UIPadding") then
+				child:Destroy()
+			end
+		end
+
+		countLabel.Text = string.format("%d / %d", #rawHistory, RAW_HISTORY_LIMIT)
+
+		if #rawHistory == 0 then
+			create("TextLabel", {
+				Size = UDim2.new(1, -4, 0, 45),
+				BackgroundTransparency = 1,
+				Text = rawHistoryFileSupported and "No saved RAW URLs yet." or "No session RAW URLs yet.",
+				TextColor3 = theme.subtext,
+				TextSize = 11,
+				Font = Enum.Font.SourceSans,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				LayoutOrder = 1
+			}, list)
+			return
+		end
+
+		for index, entry in ipairs(rawHistory) do
+			local row = create("TextButton", {
+				Size = UDim2.new(1, -4, 0, 43),
+				BackgroundColor3 = theme.surfaceAlt,
+				BorderSizePixel = 0,
+				Text = "",
+				AutoButtonColor = false,
+				LayoutOrder = index
+			}, list)
+
+			addCorner(row, 7)
+			local rowStroke = addStroke(row, theme.border, 1, 0.08)
+
+			create("TextLabel", {
+				Size = UDim2.new(1, -84, 0, 20),
+				Position = UDim2.fromOffset(10, 4),
+				BackgroundTransparency = 1,
+				Text = entry.url,
+				TextColor3 = theme.text,
+				TextSize = 10,
+				Font = Enum.Font.SourceSans,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextTruncate = Enum.TextTruncate.AtEnd
+			}, row)
+
+			local dateText = "RECENT"
+			pcall(function()
+				dateText = os.date("%d/%m %H:%M", entry.timestamp)
+			end)
+
+			create("TextLabel", {
+				Size = UDim2.new(1, -84, 0, 14),
+				Position = UDim2.fromOffset(10, 24),
+				BackgroundTransparency = 1,
+				Text = dateText,
+				TextColor3 = theme.dim,
+				TextSize = 9,
+				Font = Enum.Font.SourceSans,
+				TextXAlignment = Enum.TextXAlignment.Left
+			}, row)
+
+			local useLabel = create("TextLabel", {
+				Size = UDim2.fromOffset(56, 25),
+				Position = UDim2.new(1, -66, 0.5, -12),
+				BackgroundColor3 = theme.accentSoft,
+				BorderSizePixel = 0,
+				Text = "USE",
+				TextColor3 = theme.text,
+				TextSize = 10,
+				Font = Enum.Font.SourceSansSemibold
+			}, row)
+
+			addCorner(useLabel, 7)
+
+			row.MouseEnter:Connect(function()
+				playTween(row, {
+					BackgroundColor3 = theme.hover
+				}, 0.15)
+
+				playTween(rowStroke, {
+					Color = theme.borderActive,
+					Transparency = 0
+				}, 0.15)
+			end)
+
+			row.MouseLeave:Connect(function()
+				playTween(row, {
+					BackgroundColor3 = theme.surfaceAlt
+				}, 0.15)
+
+				playTween(rowStroke, {
+					Color = theme.border,
+					Transparency = 0.08
+				}, 0.15)
+			end)
+
+			row.MouseButton1Click:Connect(function()
+				if onUse then
+					onUse(entry.url)
+				end
+			end)
+		end
+	end
+
+	refresh()
+	return refresh
+end
+
+local function createSlider(parent, text, minimum, maximum, defaultValue, precision, callback)
+	local decimals = math.max(0, precision or 0)
+	local increment = 10 ^ -decimals
+	local value = math.clamp(defaultValue or minimum, minimum, maximum)
+	local dragging = false
+	local activeTouch = nil
+	local card = createCard(parent, 64)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -92, 0, 21),
+		Position = UDim2.fromOffset(13, 7),
+		BackgroundTransparency = 1,
+		Text = text,
+		TextColor3 = theme.text,
+		TextSize = 12,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, card)
+
+	local valueBadge = create("Frame", {
+		Size = UDim2.fromOffset(58, 22),
+		Position = UDim2.new(1, -70, 0, 6),
+		BackgroundColor3 = theme.surfaceAlt,
+		BorderSizePixel = 0
+	}, card)
+
+	addCorner(valueBadge, 7)
+	addStroke(valueBadge, theme.border, 1, 0.3)
+
+	local valueLabel = create("TextLabel", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "",
+		TextColor3 = theme.accentBright,
+		TextSize = 10,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Center
+	}, valueBadge)
+
+	local track = create("Frame", {
+		Size = UDim2.new(1, -26, 0, 4),
+		Position = UDim2.fromOffset(13, 47),
+		BackgroundColor3 = theme.accentSoft,
+		BorderSizePixel = 0
+	}, card)
+
+	addCorner(track, 2)
+
+	local fill = create("Frame", {
+		Size = UDim2.new(0, 0, 1, 0),
+		BackgroundColor3 = theme.accent,
+		BorderSizePixel = 0
+	}, track)
+
+	addCorner(fill, 2)
+
+	create("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, theme.accentSoft),
+			ColorSequenceKeypoint.new(1, theme.accentBright)
+		}),
+		Rotation = 0
+	}, fill)
+
+	local knob = create("Frame", {
+		Size = UDim2.fromOffset(11, 11),
+		Position = UDim2.new(0, -5, 0.5, -5),
+		BackgroundColor3 = theme.text,
+		BorderSizePixel = 0
+	}, track)
+
+	addCorner(knob, 6)
+	addStroke(knob, theme.accentBright, 2, 0.05)
+
+	local hitbox = create("TextButton", {
+		Size = UDim2.new(1, 0, 0, 22),
+		Position = UDim2.new(0, 0, 0.5, -11),
+		BackgroundTransparency = 1,
+		Text = "",
+		AutoButtonColor = false
+	}, track)
+
+	local function formatValue(number)
+		return string.format("%." .. tostring(decimals) .. "f", number)
+	end
+
+	local function getRatio(number)
+		return math.clamp((number - minimum) / (maximum - minimum), 0, 1)
+	end
+
+	local function render(animated)
+		local ratio = getRatio(value)
+		local fillSize = UDim2.new(ratio, 0, 1, 0)
+		local knobPosition = UDim2.new(ratio, -5, 0.5, -5)
+
+		valueLabel.Text = formatValue(value) .. "x"
+
+		if animated then
+			playTween(fill, {Size = fillSize}, 0.13, Enum.EasingStyle.Quad)
+			playTween(knob, {Position = knobPosition}, 0.13, Enum.EasingStyle.Quad)
+		else
+			fill.Size = fillSize
+			knob.Position = knobPosition
+		end
+	end
+
+	local function setValue(nextValue, runCallback, animated)
+		nextValue = math.clamp(tonumber(nextValue) or minimum, minimum, maximum)
+		nextValue = math.floor((nextValue / increment) + 0.5) * increment
+		value = math.clamp(nextValue, minimum, maximum)
+		render(animated == true)
+
+		if runCallback and callback then
+			callback(value)
+		end
+	end
+
+	local function setFromX(positionX)
+		local width = track.AbsoluteSize.X
+		if width <= 0 then
+			return
+		end
+
+		local ratio = math.clamp(
+			(positionX - track.AbsolutePosition.X) / width,
+			0,
+			1
+		)
+
+		setValue(minimum + ((maximum - minimum) * ratio), true, false)
+	end
+
+	local function beginDrag(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			activeTouch = nil
+			setFromX(input.Position.X)
+		elseif input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			activeTouch = input
+			setFromX(input.Position.X)
+		end
+
+		if dragging then
+			playTween(knob, {
+				Size = UDim2.fromOffset(13, 13),
+				Position = UDim2.new(getRatio(value), -6, 0.5, -6)
+			}, 0.1)
+		end
+	end
+
+	hitbox.InputBegan:Connect(beginDrag)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if not dragging then
+			return
+		end
+
+		if activeTouch then
+			if input == activeTouch then
+				setFromX(input.Position.X)
+			end
+		elseif input.UserInputType == Enum.UserInputType.MouseMovement then
+			setFromX(input.Position.X)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 and not activeTouch then
+			dragging = false
+		elseif activeTouch and input == activeTouch then
+			dragging = false
+			activeTouch = nil
+		end
+
+		if not dragging then
+			playTween(knob, {
+				Size = UDim2.fromOffset(11, 11),
+				Position = UDim2.new(getRatio(value), -5, 0.5, -5)
+			}, 0.1)
+		end
+	end)
+
+	render(false)
+
+	return {
+		set = function(nextValue, runCallback)
+			setValue(nextValue, runCallback == true, true)
+		end,
+		get = function()
+			return value
+		end
+	}
+end
+
+function interface.createThemePicker(parent, callback)
+	local order = {"Violet", "Indigo", "Rose", "Cyan"}
+	local buttons = {}
+	local selected = interface.themeName
+	local card = createCard(parent, 82)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -26, 0, 20),
+		Position = UDim2.fromOffset(13, 7),
+		BackgroundTransparency = 1,
+		Text = "Color theme",
+		TextColor3 = theme.text,
+		TextSize = 12,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, card)
+
+	local container = create("Frame", {
+		Size = UDim2.new(1, -26, 0, 35),
+		Position = UDim2.fromOffset(13, 37),
+		BackgroundTransparency = 1
+	}, card)
+
+	create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		Padding = UDim.new(0, 7),
+		SortOrder = Enum.SortOrder.LayoutOrder
+	}, container)
+
+	local function renderSelection()
+		for name, data in pairs(buttons) do
+			local active = name == selected
+			playTween(data.button, {
+				BackgroundColor3 = active and theme.selection or theme.surfaceAlt
+			}, 0.16)
+			playTween(data.stroke, {
+				Color = active and theme.accentBright or theme.border,
+				Transparency = active and 0.02 or 0.18
+			}, 0.16)
+			playTween(data.label, {
+				TextColor3 = active and theme.text or theme.subtext
+			}, 0.16)
+		end
+	end
+
+	for index, name in ipairs(order) do
+		local preset = interface.presets[name]
+		local button = create("TextButton", {
+			Size = UDim2.new(0.25, -6, 1, 0),
+			BackgroundColor3 = theme.surfaceAlt,
+			BorderSizePixel = 0,
+			Text = "",
+			AutoButtonColor = false,
+			LayoutOrder = index
+		}, container)
+
+		addCorner(button, 8)
+		local stroke = addStroke(button, theme.border, 1, 0.18)
+
+		local swatch = create("Frame", {
+			Size = UDim2.fromOffset(8, 8),
+			Position = UDim2.fromOffset(8, 13),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BorderSizePixel = 0
+		}, button)
+		swatch.BackgroundColor3 = preset.accent
+		addCorner(swatch, 4)
+
+		local label = create("TextLabel", {
+			Size = UDim2.new(1, -24, 1, 0),
+			Position = UDim2.fromOffset(21, 0),
+			BackgroundTransparency = 1,
+			Text = name,
+			TextColor3 = theme.subtext,
+			TextSize = 10,
+			Font = Enum.Font.SourceSans,
+			TextXAlignment = Enum.TextXAlignment.Left
+		}, button)
+
+		buttons[name] = {
+			button = button,
+			stroke = stroke,
+			label = label
+		}
+
+		button.MouseButton1Click:Connect(function()
+			selected = name
+			if callback then
+				callback(name)
+			end
+			renderSelection()
+		end)
+	end
+
+	renderSelection()
+
+	return {
+		set = function(name, runCallback)
+			if not buttons[name] then
+				return
+			end
+
+			selected = name
+			if runCallback and callback then
+				callback(name)
+			end
+			renderSelection()
+		end,
+		get = function()
+			return selected
+		end
+	}
+end
+
+local function createStatus(parent)
+	local card = createCard(parent, 70)
+
+	local statusDot = create("Frame", {
+		Size = UDim2.fromOffset(9, 9),
+		Position = UDim2.fromOffset(13, 15),
+		BackgroundColor3 = theme.dim,
+		BorderSizePixel = 0
+	}, card)
+
+	addCorner(statusDot, 5)
+
+	local statusTitle = create("TextLabel", {
+		Size = UDim2.new(1, -42, 0, 19),
+		Position = UDim2.fromOffset(30, 10),
+		BackgroundTransparency = 1,
+		Text = "STATUS: DISABLED",
+		TextColor3 = theme.text,
+		TextSize = 12,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, card)
+
+	local statusText = create("TextLabel", {
+		Size = UDim2.new(1, -26, 0, 31),
+		Position = UDim2.fromOffset(13, 33),
+		BackgroundTransparency = 1,
+		Text = "Waiting for activation.",
+		TextColor3 = theme.text,
+		TextSize = 10,
+		Font = Enum.Font.SourceSans,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top
+	}, card)
+
+	return function()
+		statusTitle.Text = noRender.enabled and "STATUS: ENABLED" or "STATUS: DISABLED"
+		playTween(statusDot, {
+			BackgroundColor3 = noRender.enabled and theme.accentBright or theme.dim
+		}, 0.2)
+
+		if noRender.enabled then
+			local modeText = noRender.adaptive.enabled
+				and string.format("%s | %d FPS", noRender.preset, noRender.adaptive.fps)
+				or noRender.preset
+
+			statusText.Text = string.format(
+				"%s | %d processed | %d removed | %d modified",
+				modeText,
+				noRender.processed,
+				noRender.destroyed,
+				noRender.modified
+			)
+		else
+			statusText.Text = "Future cleanup stopped. Removed instances cannot be restored."
+		end
+	end
+end
+
+local notifications = create("Frame", {
+	Size = UDim2.fromOffset(300, 260),
+	Position = UDim2.new(1, -304, 1, -262),
+	BackgroundTransparency = 1
+}, gui)
+
+create("UIListLayout", {
+	VerticalAlignment = Enum.VerticalAlignment.Bottom,
+	HorizontalAlignment = Enum.HorizontalAlignment.Right,
+	Padding = UDim.new(0, 9),
+	SortOrder = Enum.SortOrder.LayoutOrder
+}, notifications)
+
+local function notify(text)
+	local notification = create("CanvasGroup", {
+		Size = UDim2.fromOffset(292, 72),
+		BackgroundColor3 = theme.elevated,
+		BorderSizePixel = 0,
+		GroupTransparency = 1,
+		ClipsDescendants = true
+	}, notifications)
+
+	addCorner(notification, 10)
+	addStroke(notification, theme.accentBright, 1, 0.18)
+
+	create("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, theme.notificationStart),
+			ColorSequenceKeypoint.new(0.55, theme.notificationMid),
+			ColorSequenceKeypoint.new(1, theme.notificationEnd)
+		}),
+		Rotation = 0
+	}, notification)
+
+	local accent = create("Frame", {
+		Size = UDim2.fromOffset(3, 44),
+		Position = UDim2.fromOffset(8, 11),
+		BackgroundColor3 = theme.accent,
+		BorderSizePixel = 0
+	}, notification)
+
+	addCorner(accent, 2)
+
+	local icon = create("Frame", {
+		Size = UDim2.fromOffset(34, 34),
+		Position = UDim2.fromOffset(18, 13),
+		BackgroundColor3 = theme.accentSoft,
+		BorderSizePixel = 0
+	}, notification)
+
+	addCorner(icon, 9)
+	addStroke(icon, theme.accentBright, 1, 0.3)
+
+	create("TextLabel", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "27",
+		TextColor3 = theme.text,
+		TextSize = 12,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Center
+	}, icon)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -76, 0, 18),
+		Position = UDim2.fromOffset(65, 10),
+		BackgroundTransparency = 1,
+		Text = "K27E",
+		TextColor3 = theme.accentBright,
+		TextSize = 13,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, notification)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -76, 0, 30),
+		Position = UDim2.fromOffset(65, 28),
+		BackgroundTransparency = 1,
+		Text = text,
+		TextColor3 = theme.text,
+		TextSize = 12,
+		Font = Enum.Font.SourceSans,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top
+	}, notification)
+
+	local progressTrack = create("Frame", {
+		Size = UDim2.new(1, -20, 0, 2),
+		Position = UDim2.new(0, 10, 1, -6),
+		BackgroundColor3 = theme.accentSoft,
+		BorderSizePixel = 0
+	}, notification)
+
+	addCorner(progressTrack, 1)
+
+	local progress = create("Frame", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundColor3 = theme.accentBright,
+		BorderSizePixel = 0
+	}, progressTrack)
+
+	addCorner(progress, 1)
+
+	notification.Position = UDim2.fromOffset(28, 10)
+
+	playTween(notification, {
+		GroupTransparency = 0,
+		Position = UDim2.fromOffset(0, 0)
+	}, 0.46, Enum.EasingStyle.Quint)
+
+	playTween(progress, {
+		Size = UDim2.new(0, 0, 1, 0)
+	}, 4.1, Enum.EasingStyle.Linear)
+
+	task.delay(3.45, function()
+		playTween(notification, {
+			GroupTransparency = 1,
+			Position = UDim2.fromOffset(28, 10)
+		}, 0.52, Enum.EasingStyle.Quint)
+
+		task.wait(0.56)
+		if notification.Parent then
+			notification:Destroy()
+		end
+	end)
+end
+
+local activeMusicNotification
+
+local function showMusicNotification(trackName)
+	if activeMusicNotification and activeMusicNotification.Parent then
+		activeMusicNotification:Destroy()
+	end
+
+	local notification = create("CanvasGroup", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Size = UDim2.fromOffset(248, 56),
+		Position = UDim2.new(0.5, 0, 0, 12),
+		BackgroundColor3 = theme.surfaceAlt,
+		BackgroundTransparency = 0.24,
+		BorderSizePixel = 0,
+		GroupTransparency = 1,
+		ClipsDescendants = true,
+		ZIndex = 50
+	}, gui)
+
+	activeMusicNotification = notification
+	addCorner(notification, 6)
+	addStroke(notification, theme.borderActive, 1, 0.3)
+
+	create("Frame", {
+		Size = UDim2.fromOffset(3, 56),
+		BackgroundColor3 = theme.accent,
+		BackgroundTransparency = 0.1,
+		BorderSizePixel = 0,
+		ZIndex = 51
+	}, notification)
+
+	local icon = create("Frame", {
+		Size = UDim2.fromOffset(30, 30),
+		Position = UDim2.fromOffset(11, 11),
+		BackgroundColor3 = theme.selection,
+		BackgroundTransparency = 0.12,
+		BorderSizePixel = 0,
+		ZIndex = 51
+	}, notification)
+
+	addCorner(icon, 5)
+	addStroke(icon, theme.borderActive, 1, 0.4)
+
+	create("TextLabel", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "♪",
+		TextColor3 = theme.text,
+		TextSize = 18,
+		Font = Enum.Font.SourceSansSemibold,
+		ZIndex = 52
+	}, icon)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -58, 0, 14),
+		Position = UDim2.fromOffset(50, 7),
+		BackgroundTransparency = 1,
+		Text = "NOW PLAYING",
+		TextColor3 = theme.accentBright,
+		TextSize = 9,
+		Font = Enum.Font.SourceSansBold,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 51
+	}, notification)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -58, 0, 24),
+		Position = UDim2.fromOffset(50, 22),
+		BackgroundTransparency = 1,
+		Text = tostring(trackName),
+		TextColor3 = theme.text,
+		TextSize = 12,
+		Font = Enum.Font.SourceSansSemibold,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Center,
+		ZIndex = 51
+	}, notification)
+
+	local progressTrack = create("Frame", {
+		Size = UDim2.new(1, -14, 0, 2),
+		Position = UDim2.new(0, 7, 1, -5),
+		BackgroundColor3 = theme.border,
+		BackgroundTransparency = 0.2,
+		BorderSizePixel = 0,
+		ZIndex = 51
+	}, notification)
+
+	local progress = create("Frame", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundColor3 = theme.accentBright,
+		BorderSizePixel = 0,
+		ZIndex = 52
+	}, progressTrack)
+
+	notification.Position = UDim2.new(0.5, 0, 0, 3)
+
+	playTween(notification, {
+		GroupTransparency = 0,
+		Position = UDim2.new(0.5, 0, 0, 12)
+	}, 1.05, Enum.EasingStyle.Quint)
+
+	playTween(progress, {
+		Size = UDim2.new(0, 0, 1, 0)
+	}, 7.8, Enum.EasingStyle.Linear)
+
+	task.delay(6.25, function()
+		if not notification.Parent then
+			return
+		end
+
+		playTween(notification, {
+			GroupTransparency = 1,
+			Position = UDim2.new(0.5, 0, 0, 3)
+		}, 1.3, Enum.EasingStyle.Quint)
+
+		task.wait(1.35)
+		if notification.Parent then
+			notification:Destroy()
+		end
+
+		if activeMusicNotification == notification then
+			activeMusicNotification = nil
+		end
+	end)
+end
+
+local function formatMusicTime(seconds)
+	seconds = math.max(0, math.floor(tonumber(seconds) or 0))
+	return string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
+end
+
+local function createMusicPlayerPanel(parent)
+	createInfo(
+		parent,
+		"MUSIC WORKSPACE",
+		"Add up to 15 supported audio files inside " .. musicPlayer.folder .. "."
+	)
+
+	local playerCard = createCard(parent, 168)
+	local playerStroke = playerCard:FindFirstChildOfClass("UIStroke")
+	if playerStroke then
+		playerStroke.Transparency = 0.34
+	end
+
+	local playerHeader = create("Frame", {
+		Size = UDim2.new(1, -24, 0, 44),
+		Position = UDim2.fromOffset(12, 10),
+		BackgroundTransparency = 1
+	}, playerCard)
+
+	local playerIcon = create("Frame", {
+		Size = UDim2.fromOffset(36, 36),
+		Position = UDim2.fromOffset(0, 2),
+		BackgroundColor3 = theme.selection,
+		BackgroundTransparency = 0.1,
+		BorderSizePixel = 0
+	}, playerHeader)
+
+	addCorner(playerIcon, 7)
+	addStroke(playerIcon, theme.border, 1, 0.35)
+
+	create("TextLabel", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "♪",
+		TextColor3 = theme.accentBright,
+		TextSize = 21,
+		Font = Enum.Font.SourceSansSemibold
+	}, playerIcon)
+
+	local trackTitle = create("TextLabel", {
+		Size = UDim2.new(1, -50, 0, 24),
+		Position = UDim2.fromOffset(48, 0),
+		BackgroundTransparency = 1,
+		Text = "No track selected",
+		TextColor3 = theme.text,
+		TextSize = 14,
+		Font = Enum.Font.SourceSansSemibold,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, playerHeader)
+
+	local playbackStatus = create("TextLabel", {
+		Size = UDim2.new(1, -50, 0, 18),
+		Position = UDim2.fromOffset(48, 24),
+		BackgroundTransparency = 1,
+		Text = "Stopped",
+		TextColor3 = theme.subtext,
+		TextSize = 10,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, playerHeader)
+
+	local seekTrack = create("Frame", {
+		Size = UDim2.new(1, -24, 0, 4),
+		Position = UDim2.fromOffset(12, 68),
+		BackgroundColor3 = theme.input,
+		BorderSizePixel = 0
+	}, playerCard)
+
+	addCorner(seekTrack, 2)
+
+	local seekFill = create("Frame", {
+		Size = UDim2.new(0, 0, 1, 0),
+		BackgroundColor3 = theme.accentBright,
+		BorderSizePixel = 0
+	}, seekTrack)
+
+	addCorner(seekFill, 2)
+
+	local seekKnob = create("Frame", {
+		Size = UDim2.fromOffset(10, 10),
+		Position = UDim2.new(0, -5, 0.5, -5),
+		BackgroundColor3 = theme.text,
+		BorderSizePixel = 0
+	}, seekTrack)
+
+	addCorner(seekKnob, 5)
+
+	local seekHitbox = create("TextButton", {
+		Size = UDim2.new(1, 0, 0, 22),
+		Position = UDim2.new(0, 0, 0.5, -11),
+		BackgroundTransparency = 1,
+		Text = "",
+		AutoButtonColor = false
+	}, seekTrack)
+
+	local currentTimeLabel = create("TextLabel", {
+		Size = UDim2.fromOffset(52, 16),
+		Position = UDim2.fromOffset(12, 78),
+		BackgroundTransparency = 1,
+		Text = "0:00",
+		TextColor3 = theme.subtext,
+		TextSize = 10,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, playerCard)
+
+	local totalTimeLabel = create("TextLabel", {
+		Size = UDim2.fromOffset(52, 16),
+		Position = UDim2.new(1, -64, 0, 78),
+		BackgroundTransparency = 1,
+		Text = "0:00",
+		TextColor3 = theme.subtext,
+		TextSize = 10,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Right
+	}, playerCard)
+
+	local seekDragging = false
+	local seekTouch
+
+	local function setSeekFromX(positionX)
+		local width = seekTrack.AbsoluteSize.X
+		if width <= 0 then
+			return
+		end
+
+		local ratio = math.clamp((positionX - seekTrack.AbsolutePosition.X) / width, 0, 1)
+		seekFill.Size = UDim2.new(ratio, 0, 1, 0)
+		seekKnob.Position = UDim2.new(ratio, -5, 0.5, -5)
+		seekMusic(ratio)
+	end
+
+	seekHitbox.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			seekDragging = true
+			seekTouch = nil
+			setSeekFromX(input.Position.X)
+		elseif input.UserInputType == Enum.UserInputType.Touch then
+			seekDragging = true
+			seekTouch = input
+			setSeekFromX(input.Position.X)
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if not seekDragging then
+			return
+		end
+
+		if seekTouch then
+			if input == seekTouch then
+				setSeekFromX(input.Position.X)
+			end
+		elseif input.UserInputType == Enum.UserInputType.MouseMovement then
+			setSeekFromX(input.Position.X)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 and not seekTouch then
+			seekDragging = false
+		elseif seekTouch and input == seekTouch then
+			seekDragging = false
+			seekTouch = nil
+		end
+	end)
+
+	local controls = create("Frame", {
+		Size = UDim2.new(1, -24, 0, 42),
+		Position = UDim2.fromOffset(12, 108),
+		BackgroundTransparency = 1
+	}, playerCard)
+
+	create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder
+	}, controls)
+
+	local function createTransportButton(text, order, emphasized, callback)
+		local button = create("TextButton", {
+			Size = UDim2.new(0.25, -5, 0, 34),
+			BackgroundColor3 = emphasized and theme.selection or theme.surfaceAlt,
+			BackgroundTransparency = emphasized and 0 or 0.14,
+			BorderSizePixel = 0,
+			Text = text,
+			TextColor3 = emphasized and theme.accentBright or theme.text,
+			TextSize = 11,
+			Font = Enum.Font.SourceSansSemibold,
+			AutoButtonColor = false,
+			LayoutOrder = order
+		}, controls)
+
+		addCorner(button, 6)
+		addStroke(button, emphasized and theme.borderActive or theme.border, 1, 0.34)
+
+		button.MouseButton1Click:Connect(callback)
+		return button
+	end
+
+	createTransportButton("PREV", 1, false, function()
+		local success, errorMessage = playPreviousMusic()
+		if not success then
+			notify(errorMessage)
+		end
+	end)
+
+	local playButton = createTransportButton("PLAY", 2, true, function()
+		local success, errorMessage = toggleMusicPlayback()
+		if not success then
+			notify(errorMessage)
+		end
+	end)
+
+	createTransportButton("NEXT", 3, false, function()
+		local success, errorMessage = playNextMusic()
+		if not success then
+			notify(errorMessage)
+		end
+	end)
+
+	createTransportButton("STOP", 4, false, function()
+		local success, errorMessage = stopMusic()
+		if not success then
+			notify(errorMessage)
+		else
+			notify("Music stopped")
+		end
+	end)
+
+	local volumeCard = createCard(parent, 58)
+
+	create("TextLabel", {
+		Size = UDim2.fromOffset(60, 18),
+		Position = UDim2.fromOffset(12, 7),
+		BackgroundTransparency = 1,
+		Text = "VOLUME",
+		TextColor3 = theme.subtext,
+		TextSize = 10,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, volumeCard)
+
+	local volumeValue = create("TextLabel", {
+		Size = UDim2.fromOffset(50, 18),
+		Position = UDim2.new(1, -62, 0, 7),
+		BackgroundTransparency = 1,
+		Text = tostring(math.floor(musicPlayer.volume * 100)) .. "%",
+		TextColor3 = theme.text,
+		TextSize = 10,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Right
+	}, volumeCard)
+
+	local volumeTrack = create("Frame", {
+		Size = UDim2.new(1, -24, 0, 4),
+		Position = UDim2.fromOffset(12, 39),
+		BackgroundColor3 = theme.input,
+		BorderSizePixel = 0
+	}, volumeCard)
+
+	addCorner(volumeTrack, 2)
+
+	local volumeFill = create("Frame", {
+		Size = UDim2.new(musicPlayer.volume, 0, 1, 0),
+		BackgroundColor3 = theme.accentBright,
+		BorderSizePixel = 0
+	}, volumeTrack)
+
+	addCorner(volumeFill, 2)
+
+	local volumeKnob = create("Frame", {
+		Size = UDim2.fromOffset(10, 10),
+		Position = UDim2.new(musicPlayer.volume, -5, 0.5, -5),
+		BackgroundColor3 = theme.text,
+		BorderSizePixel = 0
+	}, volumeTrack)
+
+	addCorner(volumeKnob, 5)
+
+	local volumeHitbox = create("TextButton", {
+		Size = UDim2.new(1, 0, 0, 22),
+		Position = UDim2.new(0, 0, 0.5, -11),
+		BackgroundTransparency = 1,
+		Text = "",
+		AutoButtonColor = false
+	}, volumeTrack)
+
+	local volumeDragging = false
+	local volumeTouch
+
+	local function setVolumeFromX(positionX)
+		local width = volumeTrack.AbsoluteSize.X
+		if width <= 0 then
+			return
+		end
+
+		local ratio = math.clamp((positionX - volumeTrack.AbsolutePosition.X) / width, 0, 1)
+		setMusicVolume(ratio)
+		volumeFill.Size = UDim2.new(ratio, 0, 1, 0)
+		volumeKnob.Position = UDim2.new(ratio, -5, 0.5, -5)
+		volumeValue.Text = tostring(math.floor(ratio * 100 + 0.5)) .. "%"
+	end
+
+	volumeHitbox.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			volumeDragging = true
+			volumeTouch = nil
+			setVolumeFromX(input.Position.X)
+		elseif input.UserInputType == Enum.UserInputType.Touch then
+			volumeDragging = true
+			volumeTouch = input
+			setVolumeFromX(input.Position.X)
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if not volumeDragging then
+			return
+		end
+
+		if volumeTouch then
+			if input == volumeTouch then
+				setVolumeFromX(input.Position.X)
+			end
+		elseif input.UserInputType == Enum.UserInputType.MouseMovement then
+			setVolumeFromX(input.Position.X)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 and not volumeTouch then
+			volumeDragging = false
+		elseif volumeTouch and input == volumeTouch then
+			volumeDragging = false
+			volumeTouch = nil
+		end
+	end)
+
+	createToggle(parent, "Loop current track", musicPlayer.looped, function(value)
+		setMusicLooped(value)
+	end)
+
+	local libraryCard = createCard(parent, 230)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -100, 0, 20),
+		Position = UDim2.fromOffset(12, 8),
+		BackgroundTransparency = 1,
+		Text = "LIBRARY",
+		TextColor3 = theme.text,
+		TextSize = 11,
+		Font = Enum.Font.SourceSansBold,
+		TextXAlignment = Enum.TextXAlignment.Left
+	}, libraryCard)
+
+	local libraryCount = create("TextLabel", {
+		Size = UDim2.fromOffset(76, 20),
+		Position = UDim2.new(1, -88, 0, 8),
+		BackgroundTransparency = 1,
+		Text = "0 / 15",
+		TextColor3 = theme.subtext,
+		TextSize = 10,
+		Font = Enum.Font.SourceSans,
+		TextXAlignment = Enum.TextXAlignment.Right
+	}, libraryCard)
+
+	local libraryList = create("ScrollingFrame", {
+		Size = UDim2.new(1, -24, 0, 184),
+		Position = UDim2.fromOffset(12, 36),
+		BackgroundColor3 = theme.input,
+		BackgroundTransparency = 0.08,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 2,
+		ScrollBarImageColor3 = theme.accentSoft,
+		CanvasSize = UDim2.fromOffset(0, 0),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ClipsDescendants = true
+	}, libraryCard)
+
+	addCorner(libraryList, 6)
+	addStroke(libraryList, theme.border, 1, 0.35)
+
+	create("UIListLayout", {
+		Padding = UDim.new(0, 4),
+		SortOrder = Enum.SortOrder.LayoutOrder
+	}, libraryList)
+
+	create("UIPadding", {
+		PaddingTop = UDim.new(0, 6),
+		PaddingBottom = UDim.new(0, 6),
+		PaddingLeft = UDim.new(0, 6),
+		PaddingRight = UDim.new(0, 6)
+	}, libraryList)
+
+	local trackRows = {}
+
+	local function clearLibraryRows()
+		for _, child in ipairs(libraryList:GetChildren()) do
+			if child:IsA("GuiButton") or child:IsA("TextLabel") then
+				child:Destroy()
+			end
+		end
+		table.clear(trackRows)
+	end
+
+	local function updateState()
+		local track = musicPlayer.tracks[musicPlayer.currentIndex]
+		local sound = musicPlayer.currentSound
+
+		trackTitle.Text = track and track.name or "No track selected"
+		playButton.Text = sound and (musicPlayer.paused and "PLAY" or "PAUSE") or "PLAY"
+		playbackStatus.Text = sound and (musicPlayer.paused and "Paused" or "Playing") or "Stopped"
+		playbackStatus.TextColor3 = sound and theme.accentBright or theme.subtext
+
+		for index, row in pairs(trackRows) do
+			local selected = index == musicPlayer.currentIndex
+			row.BackgroundColor3 = selected and theme.selection or theme.surfaceAlt
+			row.BackgroundTransparency = selected and 0 or 0.16
+			row.TextColor3 = selected and theme.accentBright or theme.text
+		end
+	end
+
+	local function renderLibrary()
+		clearLibraryRows()
+		libraryCount.Text = string.format("%d / %d", #musicPlayer.tracks, musicPlayer.limit)
+
+		if #musicPlayer.tracks == 0 then
+			create("TextLabel", {
+				Size = UDim2.new(1, 0, 0, 48),
+				BackgroundTransparency = 1,
+				Text = "No supported music files found.",
+				TextColor3 = theme.subtext,
+				TextSize = 11,
+				Font = Enum.Font.SourceSans,
+				TextWrapped = true
+			}, libraryList)
+			return
+		end
+
+		for index, track in ipairs(musicPlayer.tracks) do
+			local row = create("TextButton", {
+				Size = UDim2.new(1, 0, 0, 34),
+				BackgroundColor3 = index == musicPlayer.currentIndex and theme.selection or theme.surfaceAlt,
+				BackgroundTransparency = index == musicPlayer.currentIndex and 0 or 0.16,
+				BorderSizePixel = 0,
+				Text = string.format("%02d   %s", index, track.name),
+				TextColor3 = index == musicPlayer.currentIndex and theme.accentBright or theme.text,
+				TextSize = 11,
+				Font = Enum.Font.SourceSans,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				AutoButtonColor = false,
+				LayoutOrder = index
+			}, libraryList)
+
+			create("UIPadding", {
+				PaddingLeft = UDim.new(0, 10),
+				PaddingRight = UDim.new(0, 10)
+			}, row)
+
+			addCorner(row, 5)
+			addStroke(row, theme.border, 1, 0.42)
+
+			row.MouseButton1Click:Connect(function()
+				local success, errorMessage = playMusicTrack(index)
+				if not success then
+					notify(errorMessage)
+				end
+			end)
+
+			trackRows[index] = row
+		end
+	end
+
+	local function refreshLibrary(showResult)
+		local success, result = refreshMusicLibrary()
+		renderLibrary()
+		updateState()
+
+		if showResult then
+			if success then
+				notify(string.format("Loaded %d music files", result))
+			else
+				notify(result)
+			end
+		end
+	end
+
+	createButton(parent, "Refresh music library", function()
+		refreshLibrary(true)
+	end)
+
+	musicPlayer.onStateChanged = updateState
+	musicPlayer.onTrackStarted = function(track)
+		updateState()
+		showMusicNotification(track.name)
+	end
+
+	if musicPlayer.uiConnection then
+		musicPlayer.uiConnection:Disconnect()
+	end
+
+	local elapsed = 0
+	musicPlayer.uiConnection = RunService.Heartbeat:Connect(function(deltaTime)
+		elapsed += deltaTime
+		if elapsed < 0.12 then
+			return
+		end
+		elapsed = 0
+
+		local sound = musicPlayer.currentSound
+		if not sound then
+			currentTimeLabel.Text = "0:00"
+			totalTimeLabel.Text = "0:00"
+			if not seekDragging then
+				seekFill.Size = UDim2.new(0, 0, 1, 0)
+				seekKnob.Position = UDim2.new(0, -5, 0.5, -5)
+			end
+			return
+		end
+
+		local position = sound.TimePosition
+		local length = sound.TimeLength
+		currentTimeLabel.Text = formatMusicTime(position)
+		totalTimeLabel.Text = formatMusicTime(length)
+
+		if not seekDragging and length > 0 then
+			local ratio = math.clamp(position / length, 0, 1)
+			seekFill.Size = UDim2.new(ratio, 0, 1, 0)
+			seekKnob.Position = UDim2.new(ratio, -5, 0.5, -5)
+		end
+	end)
+
+	refreshLibrary(false)
+	updateState()
+end
+
+local function createDebugController()
+	local state = {
+		showFps = false,
+		showPing = false,
+		frames = 0,
+		elapsed = 0,
+		fps = 0,
+		ping = 0,
+		visibilityVersion = 0
+	}
+
+	local overlay = create("CanvasGroup", {
+		Name = "K27EDebugOverlay",
+		Size = UDim2.fromOffset(154, 66),
+		Position = UDim2.new(0, 18, 0.5, -33),
+		BackgroundColor3 = theme.surfaceAlt,
+		BackgroundTransparency = 0.12,
+		BorderSizePixel = 0,
+		GroupTransparency = 1,
+		Visible = false,
+		Active = true,
+		ClipsDescendants = true,
+		ZIndex = 40
+	}, gui)
+
+	addCorner(overlay, 7)
+	addStroke(overlay, theme.borderActive, 1, 0.3)
+
+	create("TextLabel", {
+		Size = UDim2.new(1, -18, 0, 20),
+		Position = UDim2.fromOffset(9, 2),
+		BackgroundTransparency = 1,
+		Text = "DEBUG",
+		TextColor3 = theme.accentBright,
+		TextSize = 10,
+		Font = Enum.Font.SourceSansBold,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 41
+	}, overlay)
+
+	local fpsRow = create("Frame", {
+		Size = UDim2.new(1, -16, 0, 20),
+		Position = UDim2.fromOffset(8, 22),
+		BackgroundColor3 = theme.input,
+		BackgroundTransparency = 0.18,
+		BorderSizePixel = 0,
+		Visible = false,
+		ZIndex = 41
+	}, overlay)
+	addCorner(fpsRow, 4)
+
+	create("TextLabel", {
+		Size = UDim2.fromOffset(48, 20),
+		Position = UDim2.fromOffset(7, 0),
+		BackgroundTransparency = 1,
+		Text = "FPS",
+		TextColor3 = theme.subtext,
+		TextSize = 10,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 42
+	}, fpsRow)
+
+	local fpsValue = create("TextLabel", {
+		Size = UDim2.new(1, -62, 1, 0),
+		Position = UDim2.fromOffset(55, 0),
+		BackgroundTransparency = 1,
+		Text = "0",
+		TextColor3 = theme.text,
+		TextSize = 11,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		ZIndex = 42
+	}, fpsRow)
+
+	local pingRow = create("Frame", {
+		Size = UDim2.new(1, -16, 0, 20),
+		Position = UDim2.fromOffset(8, 44),
+		BackgroundColor3 = theme.input,
+		BackgroundTransparency = 0.18,
+		BorderSizePixel = 0,
+		Visible = false,
+		ZIndex = 41
+	}, overlay)
+	addCorner(pingRow, 4)
+
+	create("TextLabel", {
+		Size = UDim2.fromOffset(48, 20),
+		Position = UDim2.fromOffset(7, 0),
+		BackgroundTransparency = 1,
+		Text = "PING",
+		TextColor3 = theme.subtext,
+		TextSize = 10,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 42
+	}, pingRow)
+
+	local pingValue = create("TextLabel", {
+		Size = UDim2.new(1, -62, 1, 0),
+		Position = UDim2.fromOffset(55, 0),
+		BackgroundTransparency = 1,
+		Text = "0 ms",
+		TextColor3 = theme.text,
+		TextSize = 11,
+		Font = Enum.Font.SourceSansSemibold,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		ZIndex = 42
+	}, pingRow)
+
+	local function getPing()
+		local success, value = pcall(function()
+			local dataPing = Stats.Network.ServerStatsItem["Data Ping"]
+			local raw = dataPing:GetValue()
+
+			if type(raw) == "number" then
+				return raw
+			end
+
+			return tonumber(tostring(dataPing:GetValueString()):match("[%d%.]+"))
+		end)
+
+		if success and type(value) == "number" then
+			return math.max(0, math.floor(value + 0.5))
+		end
+
+		return nil
+	end
+
+	local function refresh()
+		state.visibilityVersion += 1
+		local version = state.visibilityVersion
+		local count = (state.showFps and 1 or 0) + (state.showPing and 1 or 0)
+
+		fpsRow.Visible = state.showFps
+		pingRow.Visible = state.showPing
+
+		if state.showFps then
+			fpsRow.Position = UDim2.fromOffset(8, 22)
+		end
+
+		if state.showPing then
+			pingRow.Position = UDim2.fromOffset(8, state.showFps and 44 or 22)
+		end
+
+		if count == 0 then
+			playTween(overlay, { GroupTransparency = 1 }, 0.25)
+			task.delay(0.27, function()
+				if version == state.visibilityVersion and not state.showFps and not state.showPing then
+					overlay.Visible = false
+				end
+			end)
+			return
+		end
+
+		overlay.Size = UDim2.fromOffset(154, count == 1 and 46 or 68)
+		overlay.Visible = true
+		playTween(overlay, { GroupTransparency = 0 }, 0.3)
+	end
+
+	local dragging = false
+	local dragStart
+	local startPosition
+	local dragInput
+
+	overlay.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPosition = overlay.Position
+			dragInput = input.UserInputType == Enum.UserInputType.Touch and input or nil
+		end
+	end)
+
+	local changedConnection = UserInputService.InputChanged:Connect(function(input)
+		if not dragging then
+			return
+		end
+
+		local validInput = dragInput and input == dragInput
+			or not dragInput and input.UserInputType == Enum.UserInputType.MouseMovement
+
+		if validInput then
+			local delta = input.Position - dragStart
+			overlay.Position = UDim2.new(
+				startPosition.X.Scale,
+				startPosition.X.Offset + delta.X,
+				startPosition.Y.Scale,
+				startPosition.Y.Offset + delta.Y
+			)
+		end
+	end)
+
+	local endedConnection = UserInputService.InputEnded:Connect(function(input)
+		local ended = dragInput and input == dragInput
+			or not dragInput and input.UserInputType == Enum.UserInputType.MouseButton1
+
+		if ended then
+			dragging = false
+			dragInput = nil
+		end
+	end)
+
+	local renderConnection = RunService.RenderStepped:Connect(function(deltaTime)
+		state.frames += 1
+		state.elapsed += deltaTime
+
+		if state.elapsed < 0.5 then
+			return
+		end
+
+		state.fps = math.floor((state.frames / state.elapsed) + 0.5)
+		state.frames = 0
+		state.elapsed = 0
+
+		if state.showFps then
+			fpsValue.Text = tostring(state.fps)
+		end
+
+		if state.showPing then
+			local ping = getPing()
+			state.ping = ping or state.ping
+			pingValue.Text = ping and (tostring(ping) .. " ms") or "-- ms"
+		end
+	end)
+
+	return {
+		setFps = function(value)
+			state.showFps = value == true
+			refresh()
+		end,
+		setPing = function(value)
+			state.showPing = value == true
+			refresh()
+		end,
+		resetPosition = function()
+			playTween(overlay, {
+				Position = UDim2.new(0, 18, 0.5, -33)
+			}, 0.25)
+		end,
+		destroy = function()
+			changedConnection:Disconnect()
+			endedConnection:Disconnect()
+			renderConnection:Disconnect()
+		end
+	}
+end
+
+local debugController = createDebugController()
+
+local homePage = createPage("Home")
+local controlsPage = createPage("Controls")
+local fflagsPage = createPage("FFlags")
+local miscPage = createPage("Misc")
+local debugPage = createPage("Debug")
+local settingsPage = createPage("Settings")
+
+createTab("Home", "Home", 1)
+createTab("Controls", "Controls", 2)
+createTab("FFlags", "FFlags", 3)
+createTab("Misc", "Misc", 4)
+createTab("Debug", "Debug", 5)
+createTab("Settings", "Settings", 6)
+
+createSection(homePage, "Overview")
+createInfo(homePage, "K27E", "Blade Ball focused FPS panel with adaptive cleanup, local music and utility tools.")
+
+createSection(homePage, "Status")
+local updateStatus = createStatus(homePage)
+
+noRender.onAdaptiveTierChanged = function(tier, fps)
+	updateStatus()
+	notify(string.format("Adaptive: %s preset at %d FPS", tier, fps))
+end
+
+createSection(homePage, "Actions")
+createButton(homePage, "Run cleanup scan", function()
+	if not noRender.enabled then
+		notify("Enable No Render first")
+		return
+	end
+
+	task.spawn(function()
+		refreshNoRender()
+		task.wait(0.35)
+		updateStatus()
+		notify("Cleanup scan completed")
+	end)
+end)
+
+createButton(homePage, "Refresh status", function()
+	updateStatus()
+	notify("Status refreshed")
+end)
+
+createSection(controlsPage, "Main")
+
+noRender.ui.main = createToggle(controlsPage, "No Render", false, function(value)
+	setNoRenderEnabled(value)
+
+	if value then
+		notify("No Render enabled")
+		task.delay(0.5, updateStatus)
+	else
+		noRender.setAdaptive(false)
+		notify("No Render disabled")
+		updateStatus()
+	end
+end)
+
+noRender.ui.adaptive = createToggle(controlsPage, "Adaptive FPS", false, function(value)
+	noRender.setAdaptive(value)
+
+	if value and not noRender.enabled then
+		noRender.ui.main.set(true, true)
+	end
+
+	notify(value and "Adaptive FPS enabled" or "Adaptive FPS disabled")
+end)
+
+createInfo(controlsPage, "ADAPTIVE MODE", "Automatically switches between Safe, Blade Ball, Low and Extreme based on average FPS.")
+
+createSection(controlsPage, "Presets")
+
+createButton(controlsPage, "Safe preset", function()
+	noRender.setAdaptive(false)
+	noRender.applyPreset("Safe")
+	notify("Safe preset applied")
+	updateStatus()
+end)
+
+createButton(controlsPage, "Blade Ball preset", function()
+	noRender.setAdaptive(false)
+	noRender.applyPreset("Blade Ball")
+	notify("Blade Ball preset applied")
+	updateStatus()
+end)
+
+createButton(controlsPage, "Extreme preset", function()
+	noRender.setAdaptive(false)
+	noRender.applyPreset("Extreme")
+	notify("Extreme preset applied")
+	updateStatus()
+end)
+
+createSection(controlsPage, "Core cleanup")
+
+noRender.ui.vfx = createToggle(controlsPage, "Visual effects", true, function(value)
+	noRender.setOption("vfx", value)
+end)
+
+noRender.ui.sfx = createToggle(controlsPage, "Sounds and effects", true, function(value)
+	noRender.setOption("sfx", value)
+end)
+
+noRender.ui.lighting = createToggle(controlsPage, "Lighting and post effects", true, function(value)
+	noRender.setOption("lighting", value)
+end)
+
+noRender.ui.parts = createToggle(controlsPage, "Part shadows and reflectance", true, function(value)
+	noRender.setOption("parts", value)
+end)
+
+noRender.ui.terrain = createToggle(controlsPage, "Terrain decoration and water", true, function(value)
+	noRender.setOption("terrain", value)
+end)
+
+createSection(controlsPage, "GPU optimization")
+
+noRender.ui.textures = createToggle(controlsPage, "No textures", false, function(value)
+	noRender.setOption("textures", value)
+end)
+
+noRender.ui.meshLod = createToggle(controlsPage, "Performance mesh LOD", false, function(value)
+	noRender.setOption("meshLod", value)
+end)
+
+noRender.ui.simplifyTransparency = createToggle(controlsPage, "Simplify transparency", false, function(value)
+	noRender.setOption("simplifyTransparency", value)
+end)
+
+noRender.ui.mapLite = createToggle(controlsPage, "Map Lite", false, function(value)
+	noRender.setOption("mapLite", value)
+end)
+
+noRender.ui.protectGameplay = createToggle(controlsPage, "Protect ball and gameplay", true, function(value)
+	noRender.setOption("protectGameplay", value)
+end)
+
+createButton(controlsPage, "Restore optimized properties", function()
+	noRender.setAdaptive(false)
+	setNoRenderEnabled(false)
+	noRender.ui.main.set(false, false)
+	noRender.preset = "Custom"
+	noRender.syncUI()
+	updateStatus()
+	notify("Restorable properties reset")
+end)
+
+createSection(controlsPage, "Display")
+
+local stretchToggle
+local stretchSlider
+
+stretchToggle = createToggle(controlsPage, "Screen stretch", false, function(value)
+	setScreenStretchEnabled(value)
+	notify(value and "Screen stretch enabled" or "Screen stretch disabled")
+end)
+
+stretchSlider = createSlider(
+	controlsPage,
+	"Stretch factor",
+	screenStretch.minimum,
+	screenStretch.maximum,
+	screenStretch.default,
+	2,
+	function(value)
+		setScreenStretchFactor(value)
+	end
+)
+
+createButton(controlsPage, "Reset screen stretch", function()
+	stretchSlider.set(screenStretch.default, true)
+	notify("Screen stretch reset")
+end)
+
+
+createSection(fflagsPage, "Raw source")
+
+local rawUrlInput = createTextInput(
+	fflagsPage,
+	"RAW URL",
+	"https://raw.githubusercontent.com/..."
+)
+
+local refreshRawHistory
+
+createButton(fflagsPage, "Paste URL", function()
+	local success, clipboardText = readClipboard()
+
+	if not success then
+		notify("Clipboard is unavailable")
+		return
+	end
+
+	rawUrlInput.Text = trimText(clipboardText)
+	rawUrlInput:ReleaseFocus()
+	notify("URL pasted")
+end)
+
+createButton(fflagsPage, "Apply URL", function()
+	local url = trimText(rawUrlInput.Text)
+
+	if url == "" then
+		notify("Enter a raw URL first")
+		return
+	end
+
+	addRawHistory(url)
+
+	if refreshRawHistory then
+		refreshRawHistory()
+	end
+
+	rawUrlInput:ReleaseFocus()
+	notify("Downloading FFlags")
+
+	task.spawn(function()
+		local downloaded, content = pcall(function()
+			return game:HttpGet(url)
+		end)
+
+		if not downloaded or type(content) ~= "string" then
+			notify("Failed to download URL")
+			return
+		end
+
+		local success, appliedCount, failedCount, errorMessage = applyFlagJson(content)
+
+		if not success then
+			notify(errorMessage or "Failed to apply FFlags")
+			return
+		end
+
+		if failedCount > 0 then
+			notify(string.format("Applied %d, failed %d", appliedCount, failedCount))
+		else
+			notify(string.format("Applied %d FFlags", appliedCount))
+		end
+	end)
+end)
+
+createSection(fflagsPage, "Raw history")
+
+refreshRawHistory = createRawHistoryPanel(fflagsPage, function(url)
+	rawUrlInput.Text = url
+	rawUrlInput:ReleaseFocus()
+	notify("RAW URL loaded")
+end)
+
+createButton(fflagsPage, "Clear RAW history", function()
+	clearRawHistory()
+	refreshRawHistory()
+	notify("RAW history cleared")
+end)
+
+createInfo(
+	fflagsPage,
+	rawHistoryFileSupported and "PERSISTENT HISTORY" or "SESSION HISTORY",
+	rawHistoryFileSupported
+		and "The latest 15 RAW URLs are stored in K27E_RAW_HISTORY.json."
+		or "File functions are unavailable, so history lasts only for this game session."
+)
+
+createSection(fflagsPage, "JSON editor")
+
+local jsonEditor = createTextArea(
+	fflagsPage,
+	"FFLAG JSON",
+	"Paste JSON here...",
+	150
+)
+
+createButton(fflagsPage, "Paste JSON", function()
+	local success, clipboardText = readClipboard()
+
+	if not success then
+		notify("Clipboard is unavailable")
+		return
+	end
+
+	jsonEditor.Text = clipboardText
+	jsonEditor:ReleaseFocus()
+	notify("JSON pasted")
+end)
+
+createButton(fflagsPage, "Apply JSON", function()
+	jsonEditor:ReleaseFocus()
+
+	local success, appliedCount, failedCount, errorMessage = applyFlagJson(jsonEditor.Text)
+
+	if not success then
+		notify(errorMessage or "Failed to apply FFlags")
+		return
+	end
+
+	if failedCount > 0 then
+		notify(string.format("Applied %d, failed %d", appliedCount, failedCount))
+	else
+		notify(string.format("Applied %d FFlags", appliedCount))
+	end
+end)
+
+createSection(fflagsPage, "Presets")
+
+createButton(fflagsPage, "Load default JSON", function()
+	jsonEditor.Text = DEFAULT_FFLAGS
+	notify("Default JSON loaded")
+end)
+
+createButton(fflagsPage, "Apply default FFlags", function()
+	local success, appliedCount, failedCount, errorMessage = applyFlagJson(DEFAULT_FFLAGS)
+
+	if not success then
+		notify(errorMessage or "Failed to apply default FFlags")
+		return
+	end
+
+	if failedCount > 0 then
+		notify(string.format("Applied %d, failed %d", appliedCount, failedCount))
+	else
+		notify(string.format("Applied %d default FFlags", appliedCount))
+	end
+end)
+
+createButton(fflagsPage, "Rejoin server", function()
+	local success = pcall(function()
+		TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
+	end)
+
+	if not success then
+		notify("Failed to rejoin server")
+	end
+end)
+
+createInfo(
+	fflagsPage,
+	"FFLAGS",
+	"Apply flags from a raw URL, reuse saved sources, paste JSON or load the default preset."
+)
+
+
+createSection(miscPage, "Avatar")
+
+local headlessToggle = createToggle(miscPage, "Headless", false, function(value)
+	setHeadlessEnabled(value)
+	notify(value and "Headless enabled" or "Headless disabled")
+end)
+
+local korbloxToggle = createToggle(miscPage, "Korblox", false, function(value)
+	setKorbloxEnabled(value)
+	notify(value and "Korblox enabled" or "Korblox disabled")
+end)
+
+createButton(miscPage, "Reapply appearance", function()
+	refreshAppearance()
+	notify("Appearance reapplied")
+end)
+
+createInfo(
+	miscPage,
+	"AVATAR VISUALS",
+	"Applies Headless and Korblox locally and reapplies them after character reloads."
+)
+
+createSection(miscPage, "Music player")
+createMusicPlayerPanel(miscPage)
+
+createSection(debugPage, "Performance overlay")
+
+createToggle(debugPage, "Show FPS", false, function(value)
+	debugController.setFps(value)
+	notify(value and "FPS monitor enabled" or "FPS monitor disabled")
+end)
+
+createToggle(debugPage, "Show ping", false, function(value)
+	debugController.setPing(value)
+	notify(value and "Ping monitor enabled" or "Ping monitor disabled")
+end)
+
+createButton(debugPage, "Reset overlay position", function()
+	debugController.resetPosition()
+	notify("Debug overlay position reset")
+end)
+
+createInfo(
+	debugPage,
+	"DRAGGABLE MONITOR",
+	"FPS and ping can be enabled separately. Drag the compact overlay with a mouse or touch."
+)
+
+createSection(settingsPage, "Appearance")
+
+interface.controls.themePicker = interface.createThemePicker(settingsPage, function(name)
+	if interface.applyTheme(name) then
+		interface.queueInterfaceConfigSave()
+		notify(name .. " theme applied")
+	end
+end)
+
+interface.controls.scaleSlider = createSlider(settingsPage, "Interface size", 0.75, 1.15, interface.scale, 2, function(value)
+	interface.scale = value
+	updateScale()
+	interface.queueInterfaceConfigSave()
+end)
+
+interface.controls.animationSlider = createSlider(settingsPage, "Animation speed", 0.5, 2, 1 / interface.animationScale, 2, function(value)
+	interface.animationScale = 1 / value
+	interface.queueInterfaceConfigSave()
+end)
+
+interface.controls.borderSlider = createSlider(settingsPage, "Border intensity", 0.15, 1, interface.borderIntensity, 2, function(value)
+	interface.setBorderIntensity(value)
+	interface.queueInterfaceConfigSave()
+end)
+
+interface.controls.themePicker.set(interface.themeName, false)
+interface.setBorderIntensity(interface.borderIntensity)
+
+createSection(settingsPage, "Layout")
+
+createButton(settingsPage, "Reset interface position", function()
+	playTween(root, {
+		Position = UDim2.new(0.5, -260, 0.5, -167)
+	}, 0.3)
+
+	notify("Position reset")
+end)
+
+createButton(settingsPage, "Reset interface settings", function()
+	interface.scale = 1
+	interface.animationScale = 1
+	interface.setBorderIntensity(1)
+	interface.applyTheme("Violet")
+	interface.controls.scaleSlider.set(1, false)
+	interface.controls.animationSlider.set(1, false)
+	interface.controls.borderSlider.set(1, false)
+	interface.controls.themePicker.set("Violet", false)
+	updateScale()
+	interface.saveInterfaceConfig()
+	notify("Interface settings reset")
+end)
+
+createButton(settingsPage, "Disable and close", function()
+	stopMusic()
+	setNoRenderEnabled(false)
+	setScreenStretchEnabled(false)
+	setHeadlessEnabled(false)
+	setKorbloxEnabled(false)
+
+	playTween(root, {
+		GroupTransparency = 1,
+		Size = UDim2.fromOffset(520, 20)
+	}, 0.2)
+
+	task.wait(0.22)
+	gui:Destroy()
+end)
+
+createInfo(settingsPage, "KEYBIND", "Press RightShift to fade the interface in or out.")
+
+local visible = true
+local minimized = false
+local normalSize = UDim2.fromOffset(520, 334)
+
+local function setVisible(state)
+	if visible == state then
+		return
+	end
+
+	visible = state
+
+	if state then
+		root.Visible = true
+		root.GroupTransparency = 1
+		root.Position = UDim2.new(
+			root.Position.X.Scale,
+			root.Position.X.Offset,
+			root.Position.Y.Scale,
+			root.Position.Y.Offset + 8
+		)
+
+		playTween(root, {
+			GroupTransparency = 0,
+			Position = UDim2.new(
+				root.Position.X.Scale,
+				root.Position.X.Offset,
+				root.Position.Y.Scale,
+				root.Position.Y.Offset - 8
+			)
+		}, 0.22)
+	else
+		playTween(root, {
+			GroupTransparency = 1,
+			Position = UDim2.new(
+				root.Position.X.Scale,
+				root.Position.X.Offset,
+				root.Position.Y.Scale,
+				root.Position.Y.Offset + 8
+			)
+		}, 0.18)
+
+		task.delay(0.18, function()
+			if not visible then
+				root.Visible = false
+			end
+		end)
+	end
+end
+
+local function buttonHover(button, hovering)
+	playTween(button, {
+		BackgroundTransparency = hovering and 0 or 1,
+		BackgroundColor3 = theme.hover,
+		TextColor3 = hovering and theme.text or theme.subtext
+	}, 0.14)
+end
+
+minimizeButton.MouseEnter:Connect(function()
+	buttonHover(minimizeButton, true)
+end)
+
+minimizeButton.MouseLeave:Connect(function()
+	buttonHover(minimizeButton, false)
+end)
+
+closeButton.MouseEnter:Connect(function()
+	buttonHover(closeButton, true)
+end)
+
+closeButton.MouseLeave:Connect(function()
+	buttonHover(closeButton, false)
+end)
+
+local function setMinimized(state)
+	state = state == true
+
+	if minimized == state then
+		return
+	end
+
+	minimized = state
+
+	if state then
+		sidebar.Visible = false
+		content.Visible = false
+		subtitle.Visible = false
+		minimizeButton.Visible = false
+		closeButton.Visible = false
+		restoreButton.Visible = true
+
+		brandAccent.Visible = false
+		brand.Text = "27"
+		brand.Size = UDim2.new(1, 0, 1, 0)
+		brand.Position = UDim2.fromOffset(0, 0)
+		brand.TextXAlignment = Enum.TextXAlignment.Center
+
+		playTween(root, {
+			Size = UDim2.fromOffset(78, 42)
+		}, 0.28)
+	else
+		restoreButton.Visible = false
+
+		playTween(root, {
+			Size = normalSize
+		}, 0.28)
+
+		task.delay(0.15, function()
+			if not minimized and root.Parent then
+				brandAccent.Visible = true
+				brand.Text = "K27E"
+				brand.Size = UDim2.fromOffset(180, 20)
+				brand.Position = UDim2.fromOffset(25, 4)
+				brand.TextXAlignment = Enum.TextXAlignment.Left
+				subtitle.Visible = true
+				minimizeButton.Visible = true
+				closeButton.Visible = true
+				sidebar.Visible = true
+				content.Visible = true
+			end
+		end)
+	end
+end
+
+minimizeButton.MouseButton1Click:Connect(function()
+	setMinimized(true)
+end)
+
+
+closeButton.MouseButton1Click:Connect(function()
+	stopMusic()
+	noRender.setAdaptive(false)
+	setNoRenderEnabled(false)
+	setScreenStretchEnabled(false)
+	setHeadlessEnabled(false)
+	setKorbloxEnabled(false)
+
+	playTween(root, {
+		GroupTransparency = 1,
+		Size = UDim2.fromOffset(520, 20)
+	}, 0.2)
+
+	task.wait(0.22)
+	gui:Destroy()
+end)
+
+local dragging = false
+local dragStart
+local startPosition
+local activeDragInput
+
+local minimizedDragging = false
+local minimizedDragStart
+local minimizedStartPosition
+local minimizedDragInput
+local minimizedMoved = false
+
+topbar.InputBegan:Connect(function(input)
+	if minimized then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPosition = root.Position
+		activeDragInput = input.UserInputType == Enum.UserInputType.Touch and input or nil
+	end
+end)
+
+restoreButton.InputBegan:Connect(function(input)
+	if not minimized then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+		minimizedDragging = true
+		minimizedDragStart = input.Position
+		minimizedStartPosition = root.Position
+		minimizedDragInput = input.UserInputType == Enum.UserInputType.Touch and input or nil
+		minimizedMoved = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if minimizedDragging then
+		local validInput = minimizedDragInput and input == minimizedDragInput
+			or not minimizedDragInput and input.UserInputType == Enum.UserInputType.MouseMovement
+
+		if validInput then
+			local delta = input.Position - minimizedDragStart
+
+			if delta.Magnitude >= 6 then
+				minimizedMoved = true
+			end
+
+			root.Position = UDim2.new(
+				minimizedStartPosition.X.Scale,
+				minimizedStartPosition.X.Offset + delta.X,
+				minimizedStartPosition.Y.Scale,
+				minimizedStartPosition.Y.Offset + delta.Y
+			)
+		end
+
+		return
+	end
+
+	if dragging then
+		local validInput = activeDragInput and input == activeDragInput
+			or not activeDragInput and input.UserInputType == Enum.UserInputType.MouseMovement
+
+		if validInput then
+			local delta = input.Position - dragStart
+
+			root.Position = UDim2.new(
+				startPosition.X.Scale,
+				startPosition.X.Offset + delta.X,
+				startPosition.Y.Scale,
+				startPosition.Y.Offset + delta.Y
+			)
+		end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if minimizedDragging then
+		local ended = minimizedDragInput and input == minimizedDragInput
+			or not minimizedDragInput and input.UserInputType == Enum.UserInputType.MouseButton1
+
+		if ended then
+			minimizedDragging = false
+			minimizedDragInput = nil
+
+			if not minimizedMoved and minimized then
+				setMinimized(false)
+			end
+		end
+
+		return
+	end
+
+	local ended = activeDragInput and input == activeDragInput
+		or not activeDragInput and input.UserInputType == Enum.UserInputType.MouseButton1
+
+	if ended then
+		dragging = false
+		activeDragInput = nil
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.RightShift then
+		setVisible(not visible)
+	end
+end)
+
+for name, page in pairs(pages) do
+	page.group.Visible = name == "Home"
+	page.group.GroupTransparency = name == "Home" and 0 or 1
+	page.group.Position = UDim2.fromOffset(0, 0)
+end
+
+activePage = "Home"
+
+for name in pairs(tabs) do
+	setTabVisual(name, name == "Home")
+end
+
+updateStatus()
+
+root.Size = UDim2.fromOffset(520, 30)
+root.Position = UDim2.new(0.5, -260, 0.5, -152)
+
+playTween(root, {
+	GroupTransparency = 0,
+	Size = normalSize,
+	Position = UDim2.new(0.5, -260, 0.5, -167)
+}, 0.35)
+
+gui.Destroying:Connect(function()
+	noRender.setAdaptive(false)
+	setNoRenderEnabled(false)
+	debugController.destroy()
+
+	if musicPlayer.uiConnection then
+		musicPlayer.uiConnection:Disconnect()
+		musicPlayer.uiConnection = nil
+	end
+
+	musicPlayer.onStateChanged = nil
+	musicPlayer.onTrackStarted = nil
+	destroyMusicSound(true)
+	setScreenStretchEnabled(false)
+	appearance.version += 1
+
+	if player.Character then
+		pcall(restoreHeadless, player.Character)
+		pcall(restoreKorblox, player.Character)
+	end
+
+	for _, connection in pairs(appearance.connections) do
+		pcall(function()
+			connection:Disconnect()
+		end)
+	end
+
+	if type(executorEnvironment) == "table" then
+		rawset(executorEnvironment, "K27EAppearanceConnections", nil)
+	end
+end)
+
+task.delay(0.4, function()
+	notify("K27E loaded")
+end)
